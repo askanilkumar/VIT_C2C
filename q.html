@@ -73,7 +73,7 @@ a{color:var(--acc)}
   var st = ld('c2c_st') || { run: '', ans: {}, total: 0, reg: '' };
   var live = null, mode = 'connecting';      // connecting | live | offline
   var qStart = {}, sent = {};
-  var lIdx = 0, lAns = {}, lTotal = 0;       // offline (self-paced) state
+  var lIdx = 0, lAns = {};                   // offline (self-paced) state: no scoring, the answer key is not on the phone
 
   function label(i) { return QUIZ.info(i).label; }
   function setStatus(txt, cls) {
@@ -81,15 +81,14 @@ a{color:var(--acc)}
     document.getElementById('dtx').textContent = txt;
   }
   function setBanner(txt) { banner.style.display = txt ? 'block' : 'none'; banner.textContent = txt || ''; }
-  function score() { return mode === 'offline' ? lTotal : st.total; }
-  function head() { document.getElementById('me').textContent = me ? ('👤 ' + me.name + ' · ' + score() + ' pts') : ''; }
+  function head() { document.getElementById('me').textContent = me ? ('👤 ' + me.name + (mode === 'offline' ? '' : ' · ' + st.total + ' pts')) : ''; }
 
   // ---------------------------------------------------------------- connection
   function goOffline(why) {
     if (mode === 'offline') return;
     mode = 'offline';
     setStatus('offline mode', 'off');
-    setBanner('⚠ Live sync unavailable (' + why + '). Self-paced mode: follow the main screen and tap Next. Your answers will not show on the leaderboard.');
+    setBanner('⚠ Live sync unavailable (' + why + '). Self-paced mode: follow the main screen and tap Next. Scores and answers appear only when live sync is working.');
     view();
   }
   function goLive() {
@@ -108,12 +107,23 @@ a{color:var(--acc)}
   function onLiveChange() {
     if (live && live.run && st.run !== live.run) { st = { run: live.run, ans: {}, total: 0, reg: '' }; sv('c2c_st', st); sent = {}; }
     ensurePlayer();
+    scoreReveal();
     if (live && live.phase === 'question') {
       var k = live.run + ':' + live.qIndex;
       if (!qStart[k]) qStart[k] = Date.now();
       resend();
     }
     view();
+  }
+  // The correct answer arrives only when the host reveals it. Points are computed here for display;
+  // the host computes the official leaderboard from the same formula.
+  function bonus(ms) { return 100 + Math.round(50 * Math.max(0, 1 - Math.max(0, ms) / TIME)); }
+  function scoreReveal() {
+    if (!live || live.phase !== 'revealed' || typeof live.ra !== 'number') return;
+    var a = st.ans[live.qIndex];
+    if (!a || a.scored) return;
+    a.scored = true; a.pts = (live.ra >= 0 && a.c === live.ra) ? bonus(a.ms) : 0;
+    st.total += a.pts; sv('c2c_st', st);
   }
   function ensurePlayer() {
     if (!me || !live || !live.run || st.reg === live.run || mode !== 'live') return;
@@ -124,7 +134,7 @@ a{color:var(--acc)}
     var q = live.qIndex, a = st.ans[q], k = live.run + ':' + q;
     if (!me || !a || sent[k]) return;
     sent[k] = true;
-    Backend.putAnswer(live.run, q, me.uid, me.name, a.c, a.ms, a.pts).catch(function () { sent[k] = false; });
+    Backend.putAnswer(live.run, q, me.uid, me.name, a.c, a.ms, 0).catch(function () { sent[k] = false; });
   }
 
   // ---------------------------------------------------------------- actions
@@ -141,16 +151,13 @@ a{color:var(--acc)}
     if (st.ans[q]) return;
     var k = live.run + ':' + q, ms = Date.now() - (qStart[k] || Date.now());
     if (ms > TIME + 1500) return;
-    var ok = it.type === 'quiz' && i === it.a;
-    var pts = ok ? 100 + Math.round(50 * Math.max(0, 1 - ms / TIME)) : 0;
-    st.ans[q] = { c: i, ms: ms, pts: pts }; st.total += pts; sv('c2c_st', st); sent[k] = true;
-    Backend.putAnswer(live.run, q, me.uid, me.name, i, ms, pts).catch(function () { sent[k] = false; });
+    st.ans[q] = { c: i, ms: ms, pts: 0, scored: false }; sv('c2c_st', st); sent[k] = true;
+    Backend.putAnswer(live.run, q, me.uid, me.name, i, ms, 0).catch(function () { sent[k] = false; });
     view();
   }
   function pickLocal(i) {
     if (lAns[lIdx] !== undefined) return;
-    var it = ITEMS[lIdx]; lAns[lIdx] = i;
-    if (it.type === 'quiz' && i === it.a) lTotal += 100;
+    lAns[lIdx] = i;
     view();
   }
 
@@ -163,11 +170,11 @@ a{color:var(--acc)}
     document.getElementById('jb').onclick = join;
     document.getElementById('nm').onkeydown = function (e) { if (e.key === 'Enter') join(); };
   }
-  function optsHtml(it, a, rev, expired, onclickName) {
+  function optsHtml(it, a, rev, expired, ra) {
     var h = '';
     it.o.forEach(function (o, i) {
       var cls = 'opt';
-      if (rev && it.type === 'quiz') { if (i === it.a) cls += ' ok'; else if (a && a.c === i) cls += ' bad'; }
+      if (rev && it.type === 'quiz' && typeof ra === 'number') { if (i === ra) cls += ' ok'; else if (a && a.c === i) cls += ' bad'; }
       else if (a && a.c === i) cls += ' sel';
       h += '<button class="' + cls + '" data-i="' + i + '"' + ((a || rev || expired) ? ' disabled' : '') + '><b>' + 'ABCD'[i] + '</b>' + esc(o) + '</button>';
     });
@@ -179,10 +186,12 @@ a{color:var(--acc)}
   }
   function feedback(it, a) {
     if (it.type === 'poll') return '<div class="msg info">Thanks! Results are on the main screen 👀</div>';
+    var ra = live && live.ra, ex = (live && live.re) || '';
+    if (typeof ra !== 'number' || ra < 0) return '<div class="msg wait">Answer coming up on the main screen…</div>';
     var h = '';
-    if (a && a.c === it.a) h = '<div class="msg good"><b>✅ Correct! +' + a.pts + '</b><br>' + esc(it.e) + '</div>';
-    else if (a) h = '<div class="msg badm"><b>❌ Not quite.</b> Answer: <b>' + 'ABCD'[it.a] + '. ' + esc(it.o[it.a]) + '</b><br>' + esc(it.e) + '</div>';
-    else h = '<div class="msg wait"><b>⏱ No answer.</b> Answer: <b>' + 'ABCD'[it.a] + '. ' + esc(it.o[it.a]) + '</b><br>' + esc(it.e) + '</div>';
+    if (a && a.c === ra) h = '<div class="msg good"><b>✅ Correct! +' + a.pts + '</b><br>' + esc(ex) + '</div>';
+    else if (a) h = '<div class="msg badm"><b>❌ Not quite.</b> Answer: <b>' + 'ABCD'[ra] + '. ' + esc(it.o[ra]) + '</b><br>' + esc(ex) + '</div>';
+    else h = '<div class="msg wait"><b>⏱ No answer.</b> Answer: <b>' + 'ABCD'[ra] + '. ' + esc(it.o[ra]) + '</b><br>' + esc(ex) + '</div>';
     return h;
   }
   function board(list, title) {
@@ -216,7 +225,7 @@ a{color:var(--acc)}
     var left = Math.max(0, Math.ceil((TIME - (Date.now() - (qStart[k] || Date.now()))) / 1000));
     var expired = ph === 'question' && left === 0 && !a;
     var h = '<div class="meta"><span>' + label(q) + '</span><span id="tm" class="tm">' + (ph === 'question' && !a ? left + 's' : '') + '</span></div><div class="small" style="margin-top:2px">' + esc(QUIZ.info(q).name) + '</div>';
-    h += '<h2>' + esc(it.q) + '</h2>' + optsHtml(it, a, rev, expired);
+    h += '<h2>' + esc(it.q) + '</h2>' + optsHtml(it, a, rev, expired, live.ra);
     if (ph === 'question' && a) h += '<div class="msg wait">🔒 Answer locked. Waiting for the reveal…</div>';
     if (expired) h += '<div class="msg wait">⏱ Time\'s up. Waiting for the reveal…</div>';
     if (rev) h += feedback(it, a) + '<p class="small">Your score: ' + st.total + ' pts</p>';
@@ -225,13 +234,11 @@ a{color:var(--acc)}
 
   function renderLocal() {
     var it = ITEMS[lIdx];
-    if (!it) { app.innerHTML = '<h1>🎓 Done!</h1><div class="msg good">Your self-paced score: <b>' + lTotal + '</b></div>'; return; }
+    if (!it) { app.innerHTML = '<h1>🎓 Done!</h1><div class="msg good">Thank you for taking part.</div>'; return; }
     var a = lAns[lIdx] === undefined ? null : { c: lAns[lIdx] };
-    var h = '<div class="meta"><span>' + label(lIdx) + ' · self-paced</span></div><h2>' + esc(it.q) + '</h2>' + optsHtml(it, a, !!a, false);
+    var h = '<div class="meta"><span>' + label(lIdx) + ' · self-paced</span></div><h2>' + esc(it.q) + '</h2>' + optsHtml(it, a, false, false);
     if (a) {
-      var ok = it.type === 'quiz' && a.c === it.a;
-      h += it.type === 'poll' ? '<div class="msg info">Thanks! 👀 Check the main screen.</div>' :
-        '<div class="msg ' + (ok ? 'good' : 'badm') + '"><b>' + (ok ? '✅ Correct!' : '❌ Not quite.') + '</b>' + (ok ? '' : ' Answer: <b>' + 'ABCD'[it.a] + '</b>') + '<br>' + esc(it.e) + '</div>';
+      h += '<div class="msg info">Noted ✔ The answer and explanation are on the main screen.</div>';
       h += '<button class="go" id="nx">Next ▶</button>';
     }
     app.innerHTML = h; bindOpts();

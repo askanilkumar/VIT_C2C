@@ -54,6 +54,7 @@ td.k{width:42px;color:var(--mut)}
   <b>🎛 Host console</b><span id="conn" class="pill">connecting…</span>
   <span class="mut">Host PIN</span><input id="pin" type="password" placeholder="PIN set in the rules" autocomplete="off" style="width:200px">
   <button class="sec" id="setpin">Use PIN</button>
+  <button class="sec" id="keybtn">🔑 Key file</button><input id="keyfile" type="file" accept=".js" style="display:none"><span id="keyst" class="pill off">key: not loaded</span>
   <span class="mut">Join page: <b id="joinurl"></b></span>
 </div>
 <div id="ctl">
@@ -106,6 +107,29 @@ td.k{width:42px;color:var(--mut)}
   try { pin = sessionStorage.getItem('c2c_pin') || ''; } catch (e) {}
   var qStartHost = 0, rafOn = false, connected = false;
 
+  // ---------------------------------------------------------------- answer key (local file only, never on GitHub)
+  var KEY = null;
+  function loadKeyText(txt) {
+    var w = {};
+    try { new Function('window', txt)(w); } catch (e) { return 'Could not read the key file: ' + e.message; }
+    if (!w.KEY || typeof w.KEY !== 'object') return 'That file has no answer key (expected window.KEY).';
+    var miss = ITEMS.filter(function (it) { return !w.KEY[it.id]; }).length;
+    if (miss) return 'Key file is missing ' + miss + ' of ' + ITEMS.length + ' items. Use the latest key.js.';
+    KEY = w.KEY; return '';
+  }
+  function keyStatus() {
+    var k = $('keyst');
+    k.textContent = KEY ? 'key: loaded ✔' : 'key: not loaded'; k.className = 'pill ' + (KEY ? 'on' : 'off');
+  }
+  function kA(it) { return KEY && KEY[it.id] ? KEY[it.id].a : -1; }
+  function kE(it) { return KEY && KEY[it.id] ? KEY[it.id].e : ''; }
+  function ptsFor(a) {
+    var it = ITEMS[a.q];
+    if (!it || it.type !== 'quiz' || a.c !== kA(it)) return 0;
+    return 100 + Math.round(50 * Math.max(0, 1 - Math.max(0, a.ms) / TIME));
+  }
+  try { var kt = sessionStorage.getItem('c2c_key'); if (kt) loadKeyText(kt); } catch (e) {}
+
   $('joinurl').textContent = (CFG.siteBase || '').replace(/^https?:\/\//, '') + 'q.html';
   $('pin').value = pin;
 
@@ -119,7 +143,8 @@ td.k{width:42px;color:var(--mut)}
     var m = {};
     answers.forEach(function (a) {
       var s = m[a.uid] || (m[a.uid] = { uid: a.uid, name: a.name, pts: 0, ok: 0, ms: 0 });
-      s.pts += a.pts; s.ms += a.ms; if (a.pts > 0) s.ok++;
+      var p = ptsFor(a);
+      s.pts += p; s.ms += a.ms; if (p > 0) s.ok++;
     });
     var arr = Object.keys(m).map(function (k) { return m[k]; });
     arr.sort(function (x, y) { return y.pts - x.pts || x.ms - y.ms; });
@@ -153,10 +178,16 @@ td.k{width:42px;color:var(--mut)}
   }
 
   // ---------------------------------------------------------------- publishing
+  // Every write replaces the live doc, so a 'revealed' state must always carry its answer.
+  function withReveal(d) {
+    if (d.phase === 'revealed' && d.ra === undefined) { var it = ITEMS[d.qIndex]; if (it) { d.ra = kA(it); d.re = kE(it); } }
+    return d;
+  }
   function publish(patch) {
     if (!pin) { flash('Enter the host PIN first.', 'bad'); return Promise.reject(new Error('nopin')); }
     var d = { run: S.run, qIndex: S.qIndex, phase: S.phase === 'none' ? 'lobby' : S.phase, top: S.top || [], resume: S.resume || '', seq: (S.seq || 0) + 1, at: Date.now() };
     for (var k in patch) d[k] = patch[k];
+    withReveal(d);
     return Backend.hostWrite(pin, d).then(function (nonce) {
       S = Object.assign({}, S, d, { nonce: nonce });
       if (S.phase === 'question' && patch.phase === 'question') qStartHost = Date.now();
@@ -175,16 +206,20 @@ td.k{width:42px;color:var(--mut)}
   }
   function nextQ() {
     var i = S.qIndex + 1;
-    if (i >= ITEMS.length) { publish({ phase: 'end', top: topN(10) }).catch(noop); return; }
+    if (i >= ITEMS.length) { if (!KEY) { flash('Load the answer key first.', 'bad'); return; } publish({ phase: 'end', top: topN(10) }).catch(noop); return; }
     publish({ qIndex: i, phase: 'question' }).then(function () { if ($('auto').checked) simulate(); }).catch(noop);
   }
-  function reveal() { publish({ phase: 'revealed' }).catch(noop); }
-  function board() { publish({ phase: 'board', top: topN(10) }).catch(noop); }
+  function reveal() {
+    var it = ITEMS[S.qIndex];
+    if (it && it.type === 'quiz' && !KEY) { flash('Load the answer key first: click "🔑 Key file" and choose key.js.', 'bad'); return; }
+    publish({ phase: 'revealed', ra: it ? kA(it) : -1, re: it ? kE(it) : '' }).catch(noop);
+  }
+  function board() { if (!KEY) { flash('Load the answer key first: click "🔑 Key file" and choose key.js.', 'bad'); return; } publish({ phase: 'board', top: topN(10) }).catch(noop); }
   function pause() {
     if (S.phase === 'break') publish({ phase: S.resume || 'lobby', resume: '' }).catch(noop);
     else publish({ phase: 'break', resume: S.phase }).catch(noop);
   }
-  function endAll() { if (!confirm('End the quiz for everyone?\n\nPhones will show the final standings. Use this only at the very end.')) return; publish({ phase: 'end', top: topN(10) }).catch(noop); }
+  function endAll() { if (!KEY) { flash('Load the answer key first: click "🔑 Key file" and choose key.js.', 'bad'); return; } if (!confirm('End the quiz for everyone?\n\nPhones will show the final standings. Use this only at the very end.')) return; publish({ phase: 'end', top: topN(10) }).catch(noop); }
   function jumpTo() { var i = parseInt($('jump').value, 10); publish({ qIndex: i, phase: 'question' }).catch(noop); }
   function primary() { if (S.phase === 'question') reveal(); else if (S.phase === 'lobby' || S.phase === 'revealed' || S.phase === 'board') nextQ(); }
 
@@ -199,10 +234,9 @@ td.k{width:42px;color:var(--mut)}
       var delay = 500 + Math.random() * 7000;
       setTimeout(function () {
         if (S.qIndex !== q || S.phase !== 'question' || S.run !== run) return;
-        var c = it.type === 'quiz' && Math.random() < 0.6 ? it.a : Math.floor(Math.random() * it.o.length);
+        var c = it.type === 'quiz' && KEY && Math.random() < 0.6 ? kA(it) : Math.floor(Math.random() * it.o.length);
         var ms = Math.round(delay + Math.random() * 1000);
-        var pts = it.type === 'quiz' && c === it.a ? 100 + Math.round(50 * Math.max(0, 1 - ms / TIME)) : 0;
-        Backend.putAnswer(run, q, uid, name, c, ms, pts).catch(noop);
+        Backend.putAnswer(run, q, uid, name, c, ms, 0).catch(noop);
       }, delay);
     })(i);
   }
@@ -213,8 +247,10 @@ td.k{width:42px;color:var(--mut)}
     $('checks').innerHTML = '';
     if (!connected) { checkRow(false, 'Not connected to Firestore'); return; }
     checkRow(true, 'Connected to Firestore');
+    checkRow(!!KEY, KEY ? 'Answer key loaded (' + ITEMS.length + ' items)' : 'Answer key NOT loaded: click Key file and choose key.js');
     if (!pin) { checkRow(false, 'Enter the PIN first'); return; }
     var base = { run: S.run || 'check', qIndex: S.qIndex, phase: S.phase === 'none' ? 'lobby' : S.phase, top: S.top || [], resume: S.resume || '', seq: (S.seq || 0) + 1, at: Date.now() };
+    withReveal(base);
     try { var n = await Backend.hostWrite(pin, base); S.nonce = n; checkRow(true, 'Host write with your PIN works'); }
     catch (e) { checkRow(false, 'Host write FAILED (' + (e.code || e.message) + '). Check the PIN and that rules are published.'); return; }
     try { await Backend.hostWrite('definitely-wrong-' + pin, base); checkRow(false, 'A WRONG PIN was accepted. Rules are too open!'); }
@@ -223,8 +259,8 @@ td.k{width:42px;color:var(--mut)}
     catch (e) { checkRow(e.code === 'permission-denied', 'Students cannot write the live state'); }
     try { await Backend.putPlayer('check', 'chk', 'Check'); checkRow(true, 'Student join write works'); } catch (e) { checkRow(false, 'Student join write failed (' + (e.code || e.message) + ')'); }
     try {
-      var r1 = await Backend.putAnswer('check', 0, 'chk', 'Check', 0, 1000, 100);
-      var r2 = await Backend.putAnswer('check', 0, 'chk', 'Check', 1, 1000, 150);
+      var r1 = await Backend.putAnswer('check', 0, 'chk', 'Check', 0, 1000, 0);
+      var r2 = await Backend.putAnswer('check', 0, 'chk', 'Check', 1, 1000, 0);
       checkRow(r1 === 'ok', 'Student answer write works');
       checkRow(r2 === 'dup', 'Second answer to same question is rejected');
     } catch (e) { checkRow(false, 'Student answer write failed (' + (e.code || e.message) + ')'); }
@@ -277,12 +313,12 @@ td.k{width:42px;color:var(--mut)}
       h = '<div style="display:flex;justify-content:space-between;align-items:center"><span class="lab">' + esc(label(q)) + '</span><span id="timer"></span></div>';
       h += '<div id="qtxt">' + esc(it.q) + '</div>';
       it.o.forEach(function (o, i) {
-        var ok = rev && it.type === 'quiz' && i === it.a;
+        var ok = rev && it.type === 'quiz' && i === kA(it);
         h += '<div class="bar"><span class="l">' + 'ABCD'[i] + '</span><div class="t"><div class="f' + (ok ? ' ok' : '') + '" style="width:' + (cnt[i] / max * 100) + '%"></div><span class="o">' + esc(o) + '</span></div><span class="n">' + cnt[i] + (tot ? ' · ' + Math.round(cnt[i] / tot * 100) + '%' : '') + '</span></div>';
       });
       if (rev && it.type === 'quiz') {
-        var okc = cur.filter(function (a) { return a.c === it.a; }).length;
-        h += '<p style="font-size:24px;margin-top:18px"><b>' + (tot ? Math.round(okc / tot * 100) : 0) + '% got it right.</b> ' + esc(it.e) + '</p>';
+        var okc = cur.filter(function (a) { return a.c === kA(it); }).length;
+        h += '<p style="font-size:24px;margin-top:18px"><b>' + (tot ? Math.round(okc / tot * 100) : 0) + '% got it right.</b> ' + esc(kE(it)) + '</p>';
       }
     }
     $('stage').innerHTML = h;
@@ -299,6 +335,17 @@ td.k{width:42px;color:var(--mut)}
 
   // ---------------------------------------------------------------- wiring
   $('setpin').onclick = function () { pin = $('pin').value; try { sessionStorage.setItem('c2c_pin', pin); } catch (e) {} flash(pin ? 'PIN set for this tab.' : 'PIN cleared.', pin ? 'ok' : ''); };
+  $('keybtn').onclick = function () { $('keyfile').click(); };
+  $('keyfile').onchange = function () {
+    var f = this.files && this.files[0]; if (!f) return;
+    var r = new FileReader();
+    r.onload = function () {
+      var err = loadKeyText(String(r.result));
+      if (err) { KEY = null; flash(err, 'bad'); } else { try { sessionStorage.setItem('c2c_key', String(r.result)); } catch (e) {} flash('Answer key loaded.', 'ok'); }
+      keyStatus(); sched();
+    };
+    r.readAsText(f);
+  };
   $('pin').onkeydown = function (e) { if (e.key === 'Enter') $('setpin').click(); };
   $('bNew').onclick = newSession; $('bNext').onclick = nextQ; $('bRev').onclick = reveal;
   $('bBoard').onclick = board; $('bPause').onclick = pause; $('bEnd').onclick = endAll; $('bJump').onclick = jumpTo;
@@ -312,7 +359,7 @@ td.k{width:42px;color:var(--mut)}
   [].forEach.call($('mods').querySelectorAll('button'), function (b) { b.onclick = function () { var i = QUIZ.moduleStart(parseInt(b.getAttribute('data-m'), 10)); if (i >= 0 && confirm('Jump to ' + label(i) + '?')) publish({ qIndex: i, phase: 'question' }).catch(noop); }; });
   $('jump').innerHTML = ITEMS.map(function (it, i) { return '<option value="' + i + '">' + (i + 1) + '. ' + esc(label(i)) + '</option>'; }).join('');
 
-  render(); connect();
+  keyStatus(); render(); connect();
 })();
 </script>
 </body>

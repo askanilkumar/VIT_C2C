@@ -99,3 +99,6 @@ Spark gives 50,000 reads, 20,000 writes per day (resets daily). Your session nee
 ## Plan B if Firestore misbehaves during class
 Students' pages fall back to **self-paced mode** automatically (they tap Next, score locally).
 You keep teaching from the deck. Say: "Quiz is on your phone: answer, then follow the screen."
+
+## Answer key (new)
+Correct answers and explanations are in `key.js`. It is **not** on GitHub (`.gitignore`). In `host.html` click **Key file** and choose it. No Firebase rule change is needed.

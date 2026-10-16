@@ -5,7 +5,7 @@
 |---|---|
 | 4:30 | Firebase setup (FIREBASE_SETUP.md steps 1-4), paste config.js |
 | 5:00 | Push to GitHub, enable Pages |
-| 5:15 | host.html → PIN → **Setup check** (all green) |
+| 5:15 | host.html → PIN → **🔑 Key file** (choose `key.js` from your laptop) → **Setup check** (all green, incl. "Answer key loaded") |
 | 5:25 | Open `q.html` on your own phone, join. In host: New session → Next → simulate 5 Qs (tick "auto-answer") → Reveal |
 | 5:40 | **New session** (wipes test scores). Close test tabs |
 | 5:45 | Teams: share the **deck tab** (index.html). Host console on a second screen/tab |
@@ -40,12 +40,13 @@ Use the **jump dropdown** + Go if you ever need to skip ahead.
 ## If something breaks
 | Symptom | Fix |
 |---|---|
+| Reveal says "Load the answer key first" | Click **🔑 Key file**, choose `key.js` (the key is kept for that tab after loading) |
 | Host buttons say "Write refused" | PIN wrong or rules unpublished. Retype PIN, click Use PIN |
 | Students see "Offline mode" banner | Firestore unreachable for them. They continue self-paced. You teach on |
 | A student cannot join | Ask them to reload `q.html`. Their name and score are remembered |
 | Everything stalls | **Pause** (phones show "Short pause"), fix, **Resume** |
 | Duplicate names | Fine. Host leaderboard appends a short id |
-| After class | **Export CSV** for scores. Note: answers in the page source are visible, so this is a fun quiz, not an exam |
+| After class | **Export CSV** for scores. Correct answers are not on GitHub: they live in `key.js` on your laptop and reach phones only at Reveal |
 
 ## Teams tips (180 people)
 - Put the QR slide up early and leave it for 60 seconds while you talk.
