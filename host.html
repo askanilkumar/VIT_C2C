@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Host Console · Classroom to Cloud</title>
+<style>
+:root{--bg:#0b1220;--card:#131f3a;--ink:#eef3ff;--mut:#9db0d4;--acc:#22d3ee;--ok:#22c55e;--bad:#ef4444;--warn:#f59e0b}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+#top{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:8px 14px;background:#0f1a32;border-bottom:1px solid #22345c;font-size:14px}
+#top b{color:var(--acc);font-size:16px}
+.pill{padding:3px 10px;border-radius:99px;background:#334155;font-size:12px}
+.pill.on{background:#14532d}.pill.off{background:#7c2d12}
+input{font:inherit;padding:7px 10px;border-radius:8px;border:1px solid #2b3f6e;background:#0b1220;color:var(--ink)}
+button{font:inherit;cursor:pointer;border:0;border-radius:10px;padding:10px 16px;font-weight:700;background:var(--acc);color:#06222b}
+button.sec{background:#334a78;color:#fff;font-weight:600}
+button.warn{background:var(--warn);color:#2b1a00}
+button:disabled{opacity:.35;cursor:not-allowed}
+#ctl{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:10px 14px;background:#0d1730;border-bottom:1px solid #22345c}
+#ctl .sp{flex:1}
+#msg{padding:0 14px;min-height:24px;font-size:14px}
+#msg.bad{color:#fca5a5}#msg.ok{color:#86efac}
+main{display:grid;grid-template-columns:2fr 1fr;gap:14px;padding:14px}
+@media(max-width:1000px){main{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid #22345c;border-radius:14px;padding:18px}
+.card h3{margin:0 0 10px;color:var(--acc);font-size:15px;text-transform:uppercase;letter-spacing:.05em}
+.lab{color:var(--acc);font-weight:700;letter-spacing:.04em;text-transform:uppercase;font-size:15px}
+#qtxt{font-size:30px;line-height:1.3;margin:8px 0 18px}
+.bar{display:flex;align-items:center;gap:12px;margin:10px 0}
+.bar .l{width:34px;font-size:26px;font-weight:800;color:var(--acc)}
+.bar .t{flex:1;background:#0b1220;border-radius:10px;height:46px;overflow:hidden;position:relative}
+.bar .f{height:100%;background:#2aa7d6;transition:width .35s}
+.bar .f.ok{background:var(--ok)}
+.bar .o{position:absolute;left:12px;top:0;height:46px;display:flex;align-items:center;font-size:20px;text-shadow:0 1px 2px #000}
+.bar .n{width:90px;text-align:right;font-size:22px;font-weight:700}
+.stat{display:flex;gap:28px;align-items:baseline;flex-wrap:wrap}
+.big{font-size:54px;font-weight:800;line-height:1}
+.mut{color:var(--mut)}
+#timer{font-size:44px;font-weight:800;color:var(--warn)}
+#timer.low{color:#f87171}
+table{width:100%;border-collapse:collapse}
+td{padding:8px 6px;border-bottom:1px solid #22345c;font-size:20px}
+td.r{text-align:right;font-weight:800;color:var(--acc)}
+td.k{width:42px;color:var(--mut)}
+.small{font-size:13px;color:var(--mut);line-height:1.5}
+.chk{list-style:none;padding:0;margin:8px 0}
+.chk li{padding:6px 0;border-bottom:1px solid #22345c;font-size:15px}
+.lb td{font-size:28px}
+</style>
+</head>
+<body>
+<div id="top">
+  <b>🎛 Host console</b><span id="conn" class="pill">connecting…</span>
+  <span class="mut">Host PIN</span><input id="pin" type="password" placeholder="PIN set in the rules" autocomplete="off" style="width:200px">
+  <button class="sec" id="setpin">Use PIN</button>
+  <span class="mut">Join page: <b id="joinurl"></b></span>
+</div>
+<div id="ctl">
+  <button class="sec" id="bNew">⟳ New session</button>
+  <button id="bNext">Next ▶</button>
+  <button id="bRev">Reveal ✔</button>
+  <button id="bBoard" class="sec">🏆 Leaderboard</button>
+  <button id="bPause" class="warn">⏸ Pause</button>
+  <button id="bEnd" class="sec">🎓 End</button>
+  <span class="sp"></span>
+  <span id="nextup" style="font-weight:700;color:#fbbf24"></span><span class="sp"></span><span class="mut small">Module:</span><span id="mods" style="display:flex;gap:6px"></span>
+  <select id="jump" style="font:inherit;padding:8px;border-radius:8px;background:#0b1220;color:#eef3ff;border:1px solid #2b3f6e;max-width:260px"></select>
+  <button class="sec" id="bJump">Go</button>
+  <span class="mut small">Space = Reveal / Next &nbsp; L = Leaderboard</span>
+</div>
+<div id="msg"></div>
+<main>
+  <section class="card" id="stage"></section>
+  <aside>
+    <div class="card"><h3>Room</h3><div class="stat"><div><div class="big" id="joined">0</div><div class="mut">joined</div></div><div><div class="big" id="ans">0</div><div class="mut">answered</div></div></div></div>
+    <div class="card" style="margin-top:14px"><h3>Top 5</h3><table id="top5"></table></div>
+    <div class="card" style="margin-top:14px"><h3>Tools</h3>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <button class="sec" id="bSim">Simulate</button><input id="simN" type="number" value="180" min="1" max="400" style="width:80px">
+        <label class="small"><input type="checkbox" id="auto"> auto-answer each Q</label>
+      </div>
+      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+        <button class="sec" id="bCheck">Setup check</button><button class="sec" id="bCsv">Export CSV</button>
+      </div>
+      <ul class="chk" id="checks"></ul>
+      <div class="small">Simulated students are named Sim001…, so click <b>New session</b> before the real class to start clean.</div>
+    </div>
+  </aside>
+</main>
+
+<script src="config.js"></script>
+<script src="questions.js"></script>
+<script src="backend.js"></script>
+<script>
+(function () {
+  'use strict';
+  var CFG = window.APP_CONFIG, ITEMS = window.QUIZ.items, TOPICS = window.QUIZ.topics;
+  var TIME = (CFG.questionSeconds || 25) * 1000;
+  var $ = function (id) { return document.getElementById(id); };
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+
+  var S = { run: '', qIndex: -1, phase: 'none', top: [], resume: '', seq: 0, nonce: '' };
+  var players = [], answers = [], subRun = '', unP = null, unA = null;
+  var pin = '';
+  try { pin = sessionStorage.getItem('c2c_pin') || ''; } catch (e) {}
+  var qStartHost = 0, rafOn = false, connected = false;
+
+  $('joinurl').textContent = (CFG.siteBase || '').replace(/^https?:\/\//, '') + 'q.html';
+  $('pin').value = pin;
+
+  function flash(t, cls) { var m = $('msg'); m.textContent = t || ''; m.className = cls || ''; }
+  function sched() { if (rafOn) return; rafOn = true; requestAnimationFrame(function () { rafOn = false; render(); }); }
+  function setConn(txt, on) { var c = $('conn'); c.textContent = txt; c.className = 'pill ' + (on ? 'on' : 'off'); }
+
+  // ---------------------------------------------------------------- data
+  function label(i) { var f = QUIZ.info(i); return f.label + ' · ' + f.name; }
+  function scores() {
+    var m = {};
+    answers.forEach(function (a) {
+      var s = m[a.uid] || (m[a.uid] = { uid: a.uid, name: a.name, pts: 0, ok: 0, ms: 0 });
+      s.pts += a.pts; s.ms += a.ms; if (a.pts > 0) s.ok++;
+    });
+    var arr = Object.keys(m).map(function (k) { return m[k]; });
+    arr.sort(function (x, y) { return y.pts - x.pts || x.ms - y.ms; });
+    var cnt = {}; arr.forEach(function (s) { cnt[s.name] = (cnt[s.name] || 0) + 1; });
+    arr.forEach(function (s) { s.dn = cnt[s.name] > 1 ? s.name + ' #' + s.uid.slice(-3) : s.name; });
+    return arr;
+  }
+  function topN(n) { return scores().slice(0, n).map(function (s) { return { n: s.name, p: s.pts }; }); }
+
+  function resub() {
+    if (!S.run || S.run === subRun) return;
+    subRun = S.run;
+    if (unP) unP(); if (unA) unA();
+    players = []; answers = [];
+    unP = Backend.onPlayers(S.run, function (a) { players = a; sched(); }, function () {});
+    unA = Backend.onAnswers(S.run, function (a) { answers = a; sched(); }, function () {});
+  }
+
+  function connect() {
+    var fb = CFG.firebase || {};
+    if (!fb.projectId || /PASTE/.test(fb.projectId)) { setConn('not configured', false); flash('Paste your Firebase config into config.js first (see FIREBASE_SETUP.md).', 'bad'); return; }
+    Backend.init(fb).then(function () {
+      Backend.onLive(function (d) {
+        connected = true; setConn('connected', true);
+        var prevPhase = S.phase, prevQ = S.qIndex;
+        if (d) S = Object.assign({}, S, d); else S.phase = 'none';
+        if (S.phase === 'question' && (prevPhase !== 'question' || prevQ !== S.qIndex)) qStartHost = Date.now();
+        resub(); sched();
+      }, function (e) { setConn('error', false); flash('Connection error: ' + (e && e.code || e), 'bad'); });
+    }).catch(function (e) { setConn('SDK failed to load', false); flash('Could not load Firebase SDK (network blocked?).', 'bad'); });
+  }
+
+  // ---------------------------------------------------------------- publishing
+  function publish(patch) {
+    if (!pin) { flash('Enter the host PIN first.', 'bad'); return Promise.reject(new Error('nopin')); }
+    var d = { run: S.run, qIndex: S.qIndex, phase: S.phase === 'none' ? 'lobby' : S.phase, top: S.top || [], resume: S.resume || '', seq: (S.seq || 0) + 1, at: Date.now() };
+    for (var k in patch) d[k] = patch[k];
+    return Backend.hostWrite(pin, d).then(function (nonce) {
+      S = Object.assign({}, S, d, { nonce: nonce });
+      if (S.phase === 'question' && patch.phase === 'question') qStartHost = Date.now();
+      flash('', ''); resub(); sched();
+    }).catch(function (e) {
+      var denied = e && e.code === 'permission-denied';
+      flash(denied ? 'Write refused: wrong PIN, or the Firestore rules are not published yet.' : 'Write failed: ' + (e && (e.code || e.message)), 'bad');
+      throw e;
+    });
+  }
+  function noop() {}
+  function newSession() {
+    if (!confirm('Start a fresh session? Students will rejoin automatically and scores reset.')) return;
+    var run = 'r' + Date.now().toString(36);
+    publish({ run: run, qIndex: -1, phase: 'lobby', top: [], resume: '' }).catch(noop);
+  }
+  function nextQ() {
+    var i = S.qIndex + 1;
+    if (i >= ITEMS.length) { publish({ phase: 'end', top: topN(10) }).catch(noop); return; }
+    publish({ qIndex: i, phase: 'question' }).then(function () { if ($('auto').checked) simulate(); }).catch(noop);
+  }
+  function reveal() { publish({ phase: 'revealed' }).catch(noop); }
+  function board() { publish({ phase: 'board', top: topN(10) }).catch(noop); }
+  function pause() {
+    if (S.phase === 'break') publish({ phase: S.resume || 'lobby', resume: '' }).catch(noop);
+    else publish({ phase: 'break', resume: S.phase }).catch(noop);
+  }
+  function endAll() { if (!confirm('End the quiz for everyone?\n\nPhones will show the final standings. Use this only at the very end.')) return; publish({ phase: 'end', top: topN(10) }).catch(noop); }
+  function jumpTo() { var i = parseInt($('jump').value, 10); publish({ qIndex: i, phase: 'question' }).catch(noop); }
+  function primary() { if (S.phase === 'question') reveal(); else if (S.phase === 'lobby' || S.phase === 'revealed' || S.phase === 'board') nextQ(); }
+
+  // ---------------------------------------------------------------- simulator
+  function simulate() {
+    if (S.phase !== 'question') { flash('Simulate works while a question is open.', 'bad'); return; }
+    var n = Math.max(1, Math.min(400, parseInt($('simN').value, 10) || 180)), q = S.qIndex, run = S.run, it = ITEMS[q];
+    var have = {}; players.forEach(function (p) { have[p.uid] = 1; });
+    for (var i = 1; i <= n; i++) (function (i) {
+      var uid = 'sim' + i, name = 'Sim' + ('00' + i).slice(-3);
+      if (!have[uid]) { Backend.putPlayer(run, uid, name).catch(noop); have[uid] = 1; }
+      var delay = 500 + Math.random() * 7000;
+      setTimeout(function () {
+        if (S.qIndex !== q || S.phase !== 'question' || S.run !== run) return;
+        var c = it.type === 'quiz' && Math.random() < 0.6 ? it.a : Math.floor(Math.random() * it.o.length);
+        var ms = Math.round(delay + Math.random() * 1000);
+        var pts = it.type === 'quiz' && c === it.a ? 100 + Math.round(50 * Math.max(0, 1 - ms / TIME)) : 0;
+        Backend.putAnswer(run, q, uid, name, c, ms, pts).catch(noop);
+      }, delay);
+    })(i);
+  }
+
+  // ---------------------------------------------------------------- setup check
+  function checkRow(ok, txt) { var li = document.createElement('li'); li.textContent = (ok ? '✅ ' : '❌ ') + txt; $('checks').appendChild(li); }
+  async function setupCheck() {
+    $('checks').innerHTML = '';
+    if (!connected) { checkRow(false, 'Not connected to Firestore'); return; }
+    checkRow(true, 'Connected to Firestore');
+    if (!pin) { checkRow(false, 'Enter the PIN first'); return; }
+    var base = { run: S.run || 'check', qIndex: S.qIndex, phase: S.phase === 'none' ? 'lobby' : S.phase, top: S.top || [], resume: S.resume || '', seq: (S.seq || 0) + 1, at: Date.now() };
+    try { var n = await Backend.hostWrite(pin, base); S.nonce = n; checkRow(true, 'Host write with your PIN works'); }
+    catch (e) { checkRow(false, 'Host write FAILED (' + (e.code || e.message) + '). Check the PIN and that rules are published.'); return; }
+    try { await Backend.hostWrite('definitely-wrong-' + pin, base); checkRow(false, 'A WRONG PIN was accepted. Rules are too open!'); }
+    catch (e) { checkRow(e.code === 'permission-denied', 'Wrong PIN is rejected'); }
+    try { await Backend.liveWriteDirect(Object.assign({}, base, { nonce: S.nonce })); checkRow(false, 'A student-style write (no PIN) was accepted. Rules are too open!'); }
+    catch (e) { checkRow(e.code === 'permission-denied', 'Students cannot write the live state'); }
+    try { await Backend.putPlayer('check', 'chk', 'Check'); checkRow(true, 'Student join write works'); } catch (e) { checkRow(false, 'Student join write failed (' + (e.code || e.message) + ')'); }
+    try {
+      var r1 = await Backend.putAnswer('check', 0, 'chk', 'Check', 0, 1000, 100);
+      var r2 = await Backend.putAnswer('check', 0, 'chk', 'Check', 1, 1000, 150);
+      checkRow(r1 === 'ok', 'Student answer write works');
+      checkRow(r2 === 'dup', 'Second answer to same question is rejected');
+    } catch (e) { checkRow(false, 'Student answer write failed (' + (e.code || e.message) + ')'); }
+  }
+
+  // ---------------------------------------------------------------- CSV
+  function exportCsv() {
+    var rows = [['Rank', 'Name', 'Points', 'Correct answers']];
+    scores().forEach(function (s, i) { rows.push([i + 1, s.dn, s.pts, s.ok]); });
+    var csv = rows.map(function (r) { return r.map(function (v) { return '"' + String(v).replace(/"/g, '""') + '"'; }).join(','); }).join('\n');
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = 'c2c-scores.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+
+  // ---------------------------------------------------------------- render
+  function render() {
+    var ph = S.phase, q = S.qIndex, it = ITEMS[q];
+    $('joined').textContent = players.length;
+    var cur = answers.filter(function (a) { return a.q === q; });
+    $('ans').textContent = ph === 'question' || ph === 'revealed' ? cur.length : 0;
+    var sc = scores();
+    $('top5').innerHTML = sc.slice(0, 5).map(function (s, i) { return '<tr><td class="k">' + (i + 1) + '</td><td>' + esc(s.dn) + '</td><td class="r">' + s.pts + '</td></tr>'; }).join('') || '<tr><td class="mut">No scores yet</td></tr>';
+
+    var ni = S.qIndex + 1;
+    $('nextup').textContent = (ph === 'none') ? '' : (ni < ITEMS.length ? '▶ Next up: ' + label(ni) : 'Last item reached');
+    $('bNext').disabled = !(ph === 'lobby' || ph === 'revealed' || ph === 'board');
+    $('bRev').disabled = ph !== 'question';
+    $('bBoard').disabled = ph === 'none' || ph === 'lobby';
+    $('bPause').textContent = ph === 'break' ? '▶ Resume' : '⏸ Pause';
+    $('bPause').disabled = ph === 'none';
+    $('bEnd').disabled = ph === 'none';
+    $('bJump').disabled = ph === 'none';
+
+    var h = '';
+    if (ph === 'none') {
+      h = '<div class="lab">No session yet</div><p style="font-size:24px">Enter the PIN, click <b>Use PIN</b>, then <b>New session</b>.</p><p class="small">Run <b>Setup check</b> first to confirm Firebase and the rules are working.</p>';
+    } else if (ph === 'lobby') {
+      h = '<div class="lab">Lobby</div><div class="big" style="margin:14px 0">' + players.length + ' joined</div><p style="font-size:24px">Students open <b>' + esc(CFG.siteBase.replace(/^https?:\/\//, '')) + 'q.html</b> and type their name.</p><p class="mut">Press <b>Space</b> or <b>Next</b> to start the first poll.</p>';
+    } else if (ph === 'break') {
+      h = '<div class="lab">Paused</div><p style="font-size:28px">Phones show "Short pause". Click Resume to continue.</p>';
+    } else if (ph === 'board' || ph === 'end') {
+      h = '<div class="lab">' + (ph === 'end' ? '🎓 Final standings' : '🏆 Leaderboard') + '</div><table class="lb">' +
+        sc.slice(0, 10).map(function (s, i) { return '<tr><td class="k">' + (i + 1) + '</td><td>' + esc(s.dn) + '</td><td class="r">' + s.pts + '</td></tr>'; }).join('') + '</table>';
+    } else if (it) {
+      var cnt = []; it.o.forEach(function () { cnt.push(0); });
+      cur.forEach(function (a) { if (cnt[a.c] !== undefined) cnt[a.c]++; });
+      var tot = cur.length, max = Math.max(1, Math.max.apply(null, cnt));
+      var rev = ph === 'revealed';
+      h = '<div style="display:flex;justify-content:space-between;align-items:center"><span class="lab">' + esc(label(q)) + '</span><span id="timer"></span></div>';
+      h += '<div id="qtxt">' + esc(it.q) + '</div>';
+      it.o.forEach(function (o, i) {
+        var ok = rev && it.type === 'quiz' && i === it.a;
+        h += '<div class="bar"><span class="l">' + 'ABCD'[i] + '</span><div class="t"><div class="f' + (ok ? ' ok' : '') + '" style="width:' + (cnt[i] / max * 100) + '%"></div><span class="o">' + esc(o) + '</span></div><span class="n">' + cnt[i] + (tot ? ' · ' + Math.round(cnt[i] / tot * 100) + '%' : '') + '</span></div>';
+      });
+      if (rev && it.type === 'quiz') {
+        var okc = cur.filter(function (a) { return a.c === it.a; }).length;
+        h += '<p style="font-size:24px;margin-top:18px"><b>' + (tot ? Math.round(okc / tot * 100) : 0) + '% got it right.</b> ' + esc(it.e) + '</p>';
+      }
+    }
+    $('stage').innerHTML = h;
+    tick();
+  }
+  function tick() {
+    var t = $('timer'); if (!t) return;
+    if (S.phase !== 'question') { t.textContent = S.phase === 'revealed' ? 'Revealed' : ''; t.className = ''; return; }
+    var left = Math.max(0, Math.ceil((TIME - (Date.now() - qStartHost)) / 1000));
+    t.textContent = left > 0 ? left + 's' : "Time's up";
+    t.id = 'timer'; t.className = left <= 5 ? 'low' : '';
+  }
+  setInterval(tick, 250);
+
+  // ---------------------------------------------------------------- wiring
+  $('setpin').onclick = function () { pin = $('pin').value; try { sessionStorage.setItem('c2c_pin', pin); } catch (e) {} flash(pin ? 'PIN set for this tab.' : 'PIN cleared.', pin ? 'ok' : ''); };
+  $('pin').onkeydown = function (e) { if (e.key === 'Enter') $('setpin').click(); };
+  $('bNew').onclick = newSession; $('bNext').onclick = nextQ; $('bRev').onclick = reveal;
+  $('bBoard').onclick = board; $('bPause').onclick = pause; $('bEnd').onclick = endAll; $('bJump').onclick = jumpTo;
+  $('bSim').onclick = simulate; $('bCheck').onclick = setupCheck; $('bCsv').onclick = exportCsv;
+  document.addEventListener('keydown', function (e) {
+    var tag = (e.target && e.target.tagName) || ''; if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+    if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); primary(); }
+    else if (e.key === 'l' || e.key === 'L') board();
+  });
+  $('mods').innerHTML = TOPICS.map(function (t, m) { return '<button class="sec" data-m="' + m + '" title="' + esc(t) + '" style="padding:6px 10px">M' + m + '</button>'; }).join('');
+  [].forEach.call($('mods').querySelectorAll('button'), function (b) { b.onclick = function () { var i = QUIZ.moduleStart(parseInt(b.getAttribute('data-m'), 10)); if (i >= 0 && confirm('Jump to ' + label(i) + '?')) publish({ qIndex: i, phase: 'question' }).catch(noop); }; });
+  $('jump').innerHTML = ITEMS.map(function (it, i) { return '<option value="' + i + '">' + (i + 1) + '. ' + esc(label(i)) + '</option>'; }).join('');
+
+  render(); connect();
+})();
+</script>
+</body>
+</html>

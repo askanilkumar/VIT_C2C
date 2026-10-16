@@ -1,0 +1,743 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>From Classroom to Cloud · Exploring DevOps in the Real World</title>
+<style>
+:root{--bg:#0a1020;--bg2:#101a33;--card:#142243;--ink:#f1f5ff;--mut:#a3b4d8;--acc:#22d3ee;--acc2:#a78bfa;--ok:#34d399;--warn:#fbbf24;--bad:#f87171}
+*{box-sizing:border-box}
+html{font-size:min(1.3vw,2.35vh)}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;overflow:hidden}
+#deck{position:fixed;inset:0}
+.slide{position:absolute;inset:0;display:none;flex-direction:column;justify-content:center;padding:4.5rem 6rem 4rem;background:radial-gradient(1200px 700px at 85% -10%,#18305f 0%,transparent 60%),radial-gradient(900px 600px at -10% 110%,#2a1b5c 0%,transparent 55%),var(--bg)}
+.slide.on{display:flex}
+.tag{position:absolute;top:1.4rem;left:6rem;font-size:.85rem;letter-spacing:.12em;text-transform:uppercase;color:var(--acc);font-weight:700}
+.foot{position:absolute;bottom:1.1rem;left:6rem;right:6rem;display:flex;justify-content:space-between;font-size:.75rem;color:var(--mut)}
+h1{font-size:3.3rem;line-height:1.12;margin:0 0 1rem;font-weight:800;letter-spacing:-.01em}
+h2{font-size:2.3rem;line-height:1.2;margin:0 0 1.2rem;font-weight:800}
+h3{font-size:1.35rem;margin:0 0 .4rem;color:var(--acc)}
+p,li{font-size:1.45rem;line-height:1.45}
+ul{margin:.4rem 0;padding-left:1.4rem}
+li{margin:.45rem 0}
+.hl{color:var(--acc)}.hl2{color:var(--acc2)}.warn{color:var(--warn)}.bad{color:var(--bad)}.ok{color:var(--ok)}
+.mut{color:var(--mut)}
+.center{text-align:center;align-items:center}
+.kicker{font-size:1.1rem;letter-spacing:.14em;text-transform:uppercase;color:var(--acc);font-weight:700;margin-bottom:1rem}
+.by{font-size:1.25rem;color:var(--mut)}
+.hint{display:inline-block;margin-top:1.4rem;padding:.6rem 1.2rem;border:1px solid #2b4378;border-radius:99px;color:var(--warn);font-size:1.1rem}
+.rv{opacity:0;transform:translateY(10px);transition:all .45s}
+.rv.show{opacity:1;transform:none}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:2rem}
+.three{display:grid;grid-template-columns:repeat(3,1fr);gap:1.2rem}
+.cards{display:grid;gap:1rem}
+.c4{grid-template-columns:repeat(4,1fr)}.c3{grid-template-columns:repeat(3,1fr)}.c2{grid-template-columns:repeat(2,1fr)}
+.card{background:var(--card);border:1px solid #243a68;border-radius:1rem;padding:1rem 1.2rem}
+.card h3{margin:0 0 .25rem}
+.card p{margin:0;font-size:1.1rem;color:var(--mut);line-height:1.35}
+.chip{display:inline-block;padding:.25rem .8rem;margin:.2rem;border-radius:99px;background:#17305a;border:1px solid #2b4d8a;font-size:1.05rem}
+.chip.big{font-size:1.3rem;padding:.4rem 1rem}
+table.t{width:100%;border-collapse:collapse;font-size:1.3rem}
+table.t th{text-align:left;color:var(--acc);padding:.55rem .8rem;border-bottom:2px solid #2b4d8a;font-size:1.1rem;text-transform:uppercase;letter-spacing:.05em}
+table.t td{padding:.6rem .8rem;border-bottom:1px solid #1f335c;vertical-align:top}
+.career{margin-top:1.2rem;border-left:.4rem solid var(--ok);background:#0d2a2a;border-radius:.6rem;padding:.8rem 1.2rem}
+.career b{color:var(--ok);letter-spacing:.06em;text-transform:uppercase;font-size:.95rem}
+.career p{margin:.3rem 0 0;font-size:1.25rem}
+pre.code{background:#070c18;border:1px solid #243a68;border-radius:.8rem;padding:1rem 1.2rem;font-size:1.15rem;line-height:1.5;color:#b8e8ff;overflow:hidden;font-family:Consolas,"Courier New",monospace;margin:.6rem 0}
+.quiz{border:2px solid var(--acc);border-radius:1.4rem;padding:2rem 2.4rem;background:linear-gradient(135deg,#0d2a4a,#1a1450)}
+.quiz .n{font-size:1rem;letter-spacing:.14em;text-transform:uppercase;color:var(--warn);font-weight:800}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:.8rem;margin-top:1rem}
+.opts div{background:#0f2447;border:1px solid #2b4d8a;border-radius:.8rem;padding:.8rem 1rem;font-size:1.3rem}
+.opts b{color:var(--acc);margin-right:.6rem}
+.qr{background:#fff;padding:14px;border-radius:14px;display:inline-block}
+.url{font-size:1.9rem;font-weight:800;color:var(--acc);word-break:break-all}
+.flow{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap}
+.step{background:var(--card);border:1px solid #2b4d8a;border-radius:.8rem;padding:.7rem 1rem;font-size:1.2rem}
+.arrow{color:var(--acc);font-size:1.6rem}
+.wall{display:grid;grid-template-columns:1fr 3.2rem 1fr;gap:0;align-items:stretch;margin:1rem 0}
+.wall .side{background:var(--card);border:1px solid #2b4d8a;border-radius:1rem;padding:1rem 1.3rem}
+.wall .brick{background:repeating-linear-gradient(0deg,#7c2d12 0 1.2rem,#451a03 1.2rem 1.3rem);border-radius:.3rem;display:flex;align-items:center;justify-content:center;writing-mode:vertical-rl;font-weight:800;color:#fed7aa;letter-spacing:.2em}
+.loopwrap{display:flex;justify-content:center}
+.tl{display:flex;flex-direction:column;gap:.5rem;margin:.8rem 0}
+.tl div{padding:.5rem 1rem;border-left:.3rem solid #2b4d8a;font-size:1.3rem}
+.tl .x{border-color:var(--bad);color:#fecaca}
+.phase-head{display:flex;align-items:center;gap:1rem;margin-bottom:.6rem}
+.badge{width:3.4rem;height:3.4rem;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.8rem;background:#17305a;border:2px solid var(--acc)}
+.side-tag{font-size:.95rem;padding:.2rem .8rem;border-radius:99px;font-weight:700}
+.dev{background:#1e3a8a;color:#bfdbfe}.ops{background:#065f46;color:#a7f3d0}
+.stages{display:grid;grid-template-columns:repeat(5,1fr);gap:.6rem;margin-top:1rem}
+.stage{background:linear-gradient(180deg,#17305a,#101f3e);border:1px solid #2b4d8a;border-radius:1rem;padding:1rem .8rem;text-align:center}
+.stage .num{font-size:2rem;font-weight:800;color:var(--acc)}
+.stage .nm{font-size:1.2rem;font-weight:700;margin:.2rem 0}
+.stage .wk{font-size:.95rem;color:var(--mut)}
+
+.intro{padding:0;flex-direction:row;justify-content:flex-start}
+.intro.on{display:flex}
+.intro .left{width:32%;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2rem 1.5rem}
+.intro .left img{width:12.5rem;height:12.5rem;border-radius:50%;border:.35rem solid #0b57c6;object-fit:cover}
+.intro .nm{font-size:2.1rem;font-weight:800;color:#13a7e8;margin:1.2rem 0 1.6rem;letter-spacing:.02em}
+.intro .roles{font-size:1.3rem;font-style:italic;font-weight:700;color:#fff3c4;line-height:1.5}
+.intro .right{flex:1;padding:3rem 3.2rem 2.6rem;display:flex;flex-direction:column;justify-content:center}
+.intro h2.pf{font-size:2.3rem;letter-spacing:.3em;color:#f0abfc;margin:0 0 .2rem}
+.intro .bar{width:9rem;height:.35rem;background:#13a7e8;margin-bottom:1rem}
+.intro h4{margin:.9rem 0 .2rem;font-size:1.05rem;letter-spacing:.22em;color:#f0abfc;text-transform:uppercase}
+.intro h4:after{content:"";display:block;width:2.2rem;height:.2rem;background:#fbbf24;margin-top:.25rem}
+.intro li{font-size:1.12rem;line-height:1.35;margin:.25rem 0}
+.intro ul{padding-left:1.2rem;margin:.2rem 0}
+@media (max-width:900px){.intro{flex-direction:column;overflow:auto}.intro .left{width:100%}}
+#hud{position:fixed;left:0;right:0;bottom:0;height:5px;background:#12204a;z-index:9}
+#prog{height:100%;width:0;background:linear-gradient(90deg,var(--acc),var(--acc2));transition:width .3s}
+#pg{position:fixed;right:1rem;bottom:.8rem;font-size:.8rem;color:var(--mut);z-index:9}
+#menu{position:fixed;inset:0;background:rgba(5,9,20,.96);z-index:20;display:none;padding:3rem 6rem;overflow:auto}
+#menu.on{display:block}
+#menu h2{margin-bottom:1rem}
+#menu button{display:block;width:100%;text-align:left;font:inherit;font-size:1.3rem;color:var(--ink);background:#142243;border:1px solid #2b4d8a;border-radius:.7rem;padding:.7rem 1rem;margin:.4rem 0;cursor:pointer}
+#menu button:hover{border-color:var(--acc)}
+.nav{position:fixed;bottom:.5rem;left:50%;transform:translateX(-50%);z-index:9;display:flex;gap:.5rem;opacity:0;transition:opacity .3s}
+body:hover .nav{opacity:.8}
+.nav button{font:inherit;font-size:.9rem;background:#142243;color:var(--ink);border:1px solid #2b4d8a;border-radius:.5rem;padding:.3rem .8rem;cursor:pointer}
+@media (max-width:900px){.slide{padding:3.5rem 1.5rem 3rem}.tag,.foot{left:1.5rem;right:1.5rem}.two,.three,.c4,.c3{grid-template-columns:1fr}.stages{grid-template-columns:1fr}html{font-size:15px}}
+</style>
+</head>
+<body>
+<div id="deck">
+
+<!-- =============================== HOOK =============================== -->
+<section class="slide center" data-sec="Warm-up">
+  <div class="kicker">VIT Vellore · MCA · Guest session</div>
+  <h1 style="font-size:4.4rem">From Classroom to Cloud</h1>
+  <h2 class="hl" style="font-size:2.4rem">Exploring DevOps in the Real World</h2>
+  <p class="by">Anil Kumar Sandrapuri · Professor of Practice, VIT · DevPro Academy</p>
+  <span class="hint">📱 Keep your phone ready. You will be playing live in this session.</span>
+</section>
+
+<section class="slide intro" data-sec="Warm-up">
+  <div class="left">
+    <img src="photo.jpg" alt="Anil Kumar S">
+    <div class="nm">ANIL KUMAR S</div>
+    <div class="roles">Ex-Associate Director, Kyndryl/IBM<br>Director – DevProSys<br>Consultant – Unext (Manipal Group)</div>
+  </div>
+  <div class="right">
+    <h2 class="pf">PROFILE</h2><div class="bar"></div>
+    <h4>Experience</h4>
+    <ul>
+      <li><b>25+ years</b> in global MNCs: solutioning, designing, architecting, implementing and managing global IT teams on <b>Multi-Cloud, Data &amp; Gen AI (AWS / Azure / GCP / On-Prem)</b>. Domain expertise: Pharma, BFSI, Industrial, Telecom.</li>
+      <li>Corporate training @ EY, Deloitte, Tredence, Sigmoid, Fidelity, Aditya Birla Group and more</li>
+      <li><b>5000+ hours</b> of training experience</li>
+    </ul>
+    <h4>Training &amp; Teaching</h4>
+    <ul>
+      <li>Mentor &amp; Instructor @ <b>Great Learning</b>: PG Program in Cloud Computing &amp; DevOps (University of Texas, Austin)</li>
+      <li>Designed &amp; delivering Cloud and DevOps with Gen AI training programme, certified by IIT M(P)</li>
+      <li><b>Professor of Practice</b> – VIT Vellore</li>
+    </ul>
+    <h4>Education &amp; Certifications</h4>
+    <ul>
+      <li>MBA &amp; Exec Alumni, IIM Calcutta</li>
+      <li>Certified in <b>AWS, Azure, Google Cloud</b></li>
+      <li>PMP (Project Management Professional) · FinOps Certified Practitioner &amp; FinOps for AI</li>
+    </ul>
+  </div>
+</section>
+
+
+<section class="slide" data-sec="Warm-up">
+  <h1 class="rv keep show">AI can write code in minutes now.</h1>
+  <h1 class="rv" style="font-size:3.8rem">So what exactly will a company pay <span class="hl">you</span> for?</h1>
+  <p class="rv mut" style="margin-top:1.4rem">Sit with that for 5 seconds.</p>
+</section>
+
+<section class="slide" data-sec="Warm-up">
+  <h2>Your code works on your laptop. <span class="ok">✅</span> Now what?</h2>
+  <div class="tl">
+    <div class="rv">Who <b>tests</b> it before real users touch it?</div>
+    <div class="rv">Who <b>puts it on a server</b> and keeps it there?</div>
+    <div class="rv x">Who gets woken up at <b>3 AM</b> when it crashes?</div>
+    <div class="rv">Who explains the <b>cloud bill</b> to the boss?</div>
+  </div>
+  <h2 class="rv" style="margin-top:1rem">Most classrooms stop at <span class="ok">✅</span>. <span class="hl">Companies start there.</span></h2>
+</section>
+
+<section class="slide" data-sec="Warm-up">
+  <h2>Two different worlds</h2>
+  <table class="t">
+    <tr><th></th><th>Classroom</th><th>Cloud (real world)</th></tr>
+    <tr class="rv"><td><b>Runs on</b></td><td>Your laptop</td><td>Servers serving thousands of users</td></tr>
+    <tr class="rv"><td><b>Users</b></td><td>You and your teacher</td><td>Real people, real money</td></tr>
+    <tr class="rv"><td><b>When it fails</b></td><td>You lose marks</td><td class="bad">The company loses customers</td></tr>
+    <tr class="rv"><td><b>Deadline</b></td><td>Submission date</td><td>24 x 7, every day</td></tr>
+    <tr class="rv"><td><b>"Done" means</b></td><td>It runs</td><td>It runs, <span class="hl">stays running</span>, scales, is secure and affordable</td></tr>
+  </table>
+</section>
+
+<section class="slide" data-sec="Warm-up">
+  <h2>Let's play first. Scan to join 📱</h2>
+  <div class="two" style="align-items:center">
+    <div style="text-align:center"><div class="qr" id="qrbox"></div></div>
+    <div>
+      <p class="mut" style="margin:0">Or type this in your phone browser:</p>
+      <div class="url" id="joinUrl"></div>
+      <ul style="margin-top:1rem">
+        <li>Type your <b>first name</b>. No login.</li>
+        <li>Keep <b>Teams audio on</b>, watch this screen.</li>
+        <li>Use the phone only for quizzes.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="slide" data-sec="Warm-up" data-poll="1">
+  <div class="quiz">
+    <div class="n">Module 0 · Warm-up poll 1 of 2 · vote on your phone</div>
+    <h2 style="margin:.6rem 0">Where does the code you write in class actually run?</h2>
+    <div class="opts"><div><b>A</b>Only on my laptop</div><div><b>B</b>College lab / server</div><div><b>C</b>A cloud server (AWS, Azure, GCP)</div><div><b>D</b>Honestly, no idea</div></div>
+  </div>
+  <p class="mut" style="margin-top:1rem">Results are shown live on the presenter screen.</p>
+</section>
+
+<section class="slide" data-sec="Warm-up" data-poll="2">
+  <div class="quiz">
+    <div class="n">Module 0 · Warm-up poll 2 of 2 · vote on your phone</div>
+    <h2 style="margin:.6rem 0">Five years from now, which job do you see yourself in?</h2>
+    <div class="opts"><div><b>A</b>Software developer</div><div><b>B</b>Cloud / DevOps engineer</div><div><b>C</b>Data / AI engineer</div><div><b>D</b>Not sure yet</div></div>
+  </div>
+  <p class="mut" style="margin-top:1rem">Whatever you picked, every one of these roles ships code to the cloud.</p>
+</section>
+
+<section class="slide" data-sec="Warm-up">
+  <h2>Confused by the buzzwords? <span class="hl">Good.</span></h2>
+  <div style="line-height:2.3">
+    <span class="chip big">DevOps</span><span class="chip big">SRE</span><span class="chip big">Docker</span><span class="chip big">Kubernetes</span><span class="chip big">Terraform</span><span class="chip big">CI/CD</span><span class="chip big">GitOps</span><span class="chip big">Observability</span><span class="chip big">DevSecOps</span><span class="chip big">MLOps</span><span class="chip big">AIOps</span><span class="chip big">FinOps</span><span class="chip big">Platform Engineering</span><span class="chip big">LLMOps</span><span class="chip big">Cloud Native</span>
+  </div>
+  <h2 class="rv" style="margin-top:1.2rem">Which is a job? Which is a skill? Which is hype?</h2>
+  <p class="rv warn">Writing code is getting cheaper. <b>Running it reliably is not.</b></p>
+</section>
+
+<section class="slide" data-sec="Warm-up">
+  <h2>The promise: in the next 2 hours you unlock…</h2>
+  <div class="cards c2">
+    <div class="card rv"><h3>🗺 The map</h3><p>From classroom to cloud: who does what, and which roles exist.</p></div>
+    <div class="card rv"><h3>🔁 The 8 phases</h3><p>What every software company runs, every single day.</p></div>
+    <div class="card rv"><h3>🤖 The AI shift</h3><p>What AI changes in DevOps, and what it never will.</p></div>
+    <div class="card rv"><h3>🚀 Your path</h3><p>A 5-stage roadmap and a first project you can start tonight.</p></div>
+  </div>
+  <p class="rv mut" style="margin-top:1rem">Fine print: 25 scored questions, live leaderboard, top 3 get a shout-out. 🏆</p>
+</section>
+
+<section class="slide" data-sec="Warm-up">
+  <h2>Today's journey</h2>
+  <div class="flow" style="gap:.4rem">
+    <div class="step">1 · Ops &amp; why it matters</div><span class="arrow">→</span>
+    <div class="step">2 · Dev vs Deployment</div><span class="arrow">→</span>
+    <div class="step">3 · DevOps &amp; 8 phases</div><span class="arrow">→</span>
+    <div class="step">4 · AI in DevOps</div><span class="arrow">→</span>
+    <div class="step">5 · Rapid-fire</div><span class="arrow">→</span>
+    <div class="step">6 · Your path</div>
+  </div>
+  <p class="mut" style="margin-top:1.6rem">Every topic ends with a <b class="ok">Career link</b> and a 5-question quiz.</p>
+</section>
+
+<!-- =============================== 1 OPS =============================== -->
+<section class="slide" data-sec="Module 1 · Ops" >
+  <div class="kicker">Meet CampusCart 🛒</div>
+  <h1>Two students build a campus marketplace app.</h1>
+  <p class="rv">It works perfectly on their laptops. They launch on a Friday with a flash-sale email to <b>2,000 students</b>.</p>
+  <p class="rv hl"><b>What could go wrong?</b></p>
+</section>
+
+<section class="slide" data-sec="Module 1 · Ops">
+  <h2>Launch night, 9 PM</h2>
+  <div class="tl">
+    <div class="rv">8:55 PM · Flash-sale email goes out 📧</div>
+    <div class="rv">9:02 PM · Pages load slowly</div>
+    <div class="rv x">9:10 PM · Payments start failing</div>
+    <div class="rv x">9:20 PM · Database disk is 100% full</div>
+    <div class="rv x">9:45 PM · Site is down. Customers leave bad reviews.</div>
+    <div class="rv">2:00 AM · Someone finally fixes it. Nobody was watching.</div>
+  </div>
+  <h2 class="rv hl">Who was responsible for keeping it running? → <u>Ops</u></h2>
+</section>
+
+<section class="slide" data-sec="Module 1 · Ops">
+  <h2>What is "Ops"?</h2>
+  <p>Operations = everything needed to <b class="hl">keep software running</b> for real users.</p>
+  <div class="cards c3" style="margin-top:1rem">
+    <div class="card rv"><h3>🚚 Deploy</h3><p>Get new versions live safely</p></div>
+    <div class="card rv"><h3>👀 Monitor</h3><p>Know when something is wrong</p></div>
+    <div class="card rv"><h3>📈 Scale</h3><p>Handle 20 or 20,000 users</p></div>
+    <div class="card rv"><h3>🔒 Secure</h3><p>Patch, protect, control access</p></div>
+    <div class="card rv"><h3>🛠 Fix</h3><p>Respond to incidents fast</p></div>
+    <div class="card rv"><h3>💰 Control cost</h3><p>Pay only for what you need</p></div>
+  </div>
+</section>
+
+<section class="slide" data-sec="Module 1 · Ops" data-gen="ops"></section>
+
+<section class="slide" data-sec="Module 1 · Ops">
+  <h2>Why Ops matters</h2>
+  <div class="cards c2">
+    <div class="card rv"><h3>⏱ Availability</h3><p>Every minute offline is lost orders and lost work.</p></div>
+    <div class="card rv"><h3>🤝 Trust</h3><p>Users forgive a missing feature. Rarely a lost payment.</p></div>
+    <div class="card rv"><h3>🛡 Security</h3><p>One misconfigured server can expose everything.</p></div>
+    <div class="card rv"><h3>💸 Cost</h3><p>A forgotten cloud resource quietly burns money every hour.</p></div>
+  </div>
+</section>
+
+<section class="slide" data-sec="Module 1 · Ops">
+  <h2>🎯 Career link: who owns this?</h2>
+  <table class="t">
+    <tr><th>Role</th><th>Owns</th></tr>
+    <tr class="rv"><td>Cloud / SysOps Engineer</td><td>Servers, networks, cloud accounts</td></tr>
+    <tr class="rv"><td>Site Reliability Engineer (SRE)</td><td>Reliability, incidents, SLOs</td></tr>
+    <tr class="rv"><td>Security / SecOps Analyst</td><td>Threat detection and response</td></tr>
+    <tr class="rv"><td>FinOps Practitioner</td><td>Cloud cost accountability</td></tr>
+  </table>
+  <div class="career rv"><b>Start with</b><p>Linux basics + one cloud platform. Everything else builds on these two.</p></div>
+</section>
+
+<section class="slide center" data-sec="Module 1 · Ops" data-quiz="1">
+  <div class="quiz"><div class="n">Module 1 · Quiz 1 of 1</div><h1 style="margin:.6rem 0">Ops &amp; why it matters</h1><p>5 questions · 25 seconds each · phone out 📱</p><p class="mut">Your phone shows the same title. Wait for Q1.</p><p class="mut">Faster correct answers score more.</p></div>
+</section>
+
+<!-- =============================== 2 DEV vs DEPLOY =============================== -->
+<section class="slide" data-sec="Module 2 · Dev vs Deployment">
+  <h2>Development vs Deployment</h2>
+  <div class="two">
+    <div class="card"><h3>🧑‍💻 Development</h3><ul><li>Build features</li><li>Runs on <b>your laptop</b></li><li>Tools: IDE, Git</li><li>Question: <i>"Does it work?"</i></li></ul></div>
+    <div class="card"><h3>🚀 Deployment</h3><ul><li>Run it for <b>real users</b></li><li>Runs on <b>servers / cloud</b></li><li>Tools: pipelines, containers, cloud</li><li>Question: <i>"Does it work for everyone, always, safely?"</i></li></ul></div>
+  </div>
+</section>
+
+<section class="slide" data-sec="Module 2 · Dev vs Deployment">
+  <h2>"But it works on my machine!" 🤷</h2>
+  <div class="two">
+    <div class="card"><h3>💻 Your laptop</h3><ul><li>Python 3.11</li><li>Windows</li><li>Test database, no password</li><li>1 user (you)</li></ul></div>
+    <div class="card"><h3>☁ The server</h3><ul><li class="bad">Python 3.8</li><li class="bad">Linux</li><li class="bad">Real database, secrets, firewall</li><li class="bad">2,000 users at once</li></ul></div>
+  </div>
+  <p class="rv hl" style="margin-top:1rem"><b>Same code. Different environment. Different result.</b></p>
+</section>
+
+<section class="slide" data-sec="Module 2 · Dev vs Deployment">
+  <h2>Why deployment is hard</h2>
+  <div class="cards c4">
+    <div class="card rv"><h3>Drift</h3><p>Environments quietly differ</p></div>
+    <div class="card rv"><h3>Manual steps</h3><p>Humans forget step 7</p></div>
+    <div class="card rv"><h3>Big bang</h3><p>Huge releases, huge failures</p></div>
+    <div class="card rv"><h3>Slow feedback</h3><p>Bug found weeks later</p></div>
+    <div class="card rv"><h3>The wall</h3><p>Dev and Ops blame each other</p></div>
+    <div class="card rv"><h3>Late security</h3><p>Checked after it is built</p></div>
+    <div class="card rv"><h3>Scale shock</h3><p>Works for 10, dies at 10,000</p></div>
+    <div class="card rv"><h3>No undo</h3><p>No rollback plan</p></div>
+  </div>
+</section>
+
+<section class="slide" data-sec="Module 2 · Dev vs Deployment">
+  <h2>The wall of confusion 🧱</h2>
+  <div class="wall">
+    <div class="side"><h3>Developers</h3><p>Want to ship <b>change</b>, fast.<br>"Here is the code. Deploy it."</p></div>
+    <div class="brick">THE WALL</div>
+    <div class="side"><h3>Operations</h3><p>Want <b>stability</b>.<br>"Every change is a risk."</p></div>
+  </div>
+  <h2 class="rv hl">DevOps removes the wall: shared ownership.<br><span class="mut" style="font-size:1.6rem">"You build it, you run it."</span></h2>
+</section>
+
+<section class="slide" data-sec="Module 2 · Dev vs Deployment">
+  <h2>CampusCart fixes it: package once, run anywhere</h2>
+<pre class="code"># Dockerfile: the app and its environment, together
+FROM python:3.11-slim
+COPY . /app
+RUN pip install -r /app/requirements.txt
+CMD ["python", "/app/app.py"]</pre>
+  <div class="flow rv"><div class="step">Code</div><span class="arrow">→</span><div class="step">Container image</div><span class="arrow">→</span><div class="step">Test</div><span class="arrow">→</span><div class="step">Deploy</div><span class="arrow">→</span><div class="step ok">Rollback if broken ↩</div></div>
+  <p class="rv mut" style="margin-top:1rem">Same image on the laptop, the test server and production. <b>No more surprises.</b></p>
+</section>
+
+<section class="slide" data-sec="Module 2 · Dev vs Deployment">
+  <h2>🎯 Career link: who owns this?</h2>
+  <table class="t">
+    <tr><th>Role</th><th>Owns</th></tr>
+    <tr class="rv"><td>DevOps Engineer</td><td>Pipelines, environments, automation</td></tr>
+    <tr class="rv"><td>Release Engineer</td><td>Versioning, release process</td></tr>
+    <tr class="rv"><td>Platform Engineer</td><td>Internal platforms developers deploy on</td></tr>
+  </table>
+  <div class="career rv"><b>Start with</b><p>Git + Docker. Package one of your own projects as a container this week.</p></div>
+</section>
+
+<section class="slide center" data-sec="Module 2 · Dev vs Deployment" data-quiz="2">
+  <div class="quiz"><div class="n">Module 2 · Quiz 1 of 1</div><h1 style="margin:.6rem 0">Dev vs Deployment</h1><p>5 questions · 25 seconds each · phone out 📱</p><p class="mut">Your phone shows the same title. Wait for Q1.</p></div>
+</section>
+
+<!-- =============================== 3 DEVOPS =============================== -->
+<section class="slide" data-sec="Module 3 · DevOps &amp; 8 phases">
+  <h2>What is DevOps?</h2>
+  <div class="cards c3">
+    <div class="card rv"><h3>🤝 A culture</h3><p>Dev and Ops share goals and responsibility.</p></div>
+    <div class="card rv"><h3>⚙ A set of practices</h3><p>Automation, small releases, fast feedback.</p></div>
+    <div class="card rv"><h3>🧰 Supported by tools</h3><p>Git, CI/CD, containers, cloud, monitoring.</p></div>
+  </div>
+  <p class="rv" style="margin-top:1.2rem"><b class="warn">Not</b> just a tool. <b class="warn">Not</b> just a job title. <span class="hl">Goal: ship small changes quickly, safely, repeatedly.</span></p>
+</section>
+
+<section class="slide" data-sec="Module 3 · DevOps &amp; 8 phases">
+  <h2>Why it is significant: speed <u>and</u> stability</h2>
+  <p>Research from DORA (DevOps Research and Assessment) tracks four classic measures:</p>
+  <div class="cards c4">
+    <div class="card rv"><h3>Deploy frequency</h3><p>How often you ship</p></div>
+    <div class="card rv"><h3>Lead time</h3><p>Commit to production</p></div>
+    <div class="card rv"><h3>Change failure rate</h3><p>How often a release breaks things</p></div>
+    <div class="card rv"><h3>Time to restore</h3><p>How fast you recover</p></div>
+  </div>
+  <p class="rv hl" style="margin-top:1rem">The finding that surprised people: high performers are faster <b>and</b> more stable. Speed and safety are not a trade-off.</p>
+</section>
+
+<section class="slide center" data-sec="Module 3 · DevOps &amp; 8 phases">
+  <h2>The 8 phases: a loop that never stops ♾</h2>
+  <div class="loopwrap" id="loopbox"></div>
+  <p class="mut">Left loop = build side (Dev) · Right loop = run side (Ops) · Monitor feeds the next Plan</p>
+</section>
+
+<section class="slide" data-sec="Module 3 · DevOps &amp; 8 phases" data-gen="phase" data-i="0"></section>
+<section class="slide" data-sec="Module 3 · DevOps &amp; 8 phases" data-gen="phase" data-i="1"></section>
+<section class="slide" data-sec="Module 3 · DevOps &amp; 8 phases" data-gen="phase" data-i="2"></section>
+<section class="slide" data-sec="Module 3 · DevOps &amp; 8 phases" data-gen="phase" data-i="3"></section>
+<section class="slide" data-sec="Module 3 · DevOps &amp; 8 phases" data-gen="phase" data-i="4"></section>
+<section class="slide" data-sec="Module 3 · DevOps &amp; 8 phases" data-gen="phase" data-i="5"></section>
+<section class="slide" data-sec="Module 3 · DevOps &amp; 8 phases" data-gen="phase" data-i="6"></section>
+<section class="slide" data-sec="Module 3 · DevOps &amp; 8 phases" data-gen="phase" data-i="7"></section>
+
+<section class="slide" data-sec="Module 3 · DevOps &amp; 8 phases">
+  <h2>CI vs CD vs CD: three terms, one idea</h2>
+  <table class="t">
+    <tr><th>Term</th><th>Meaning</th></tr>
+    <tr class="rv"><td><b class="hl">Continuous Integration</b></td><td>Merge often. Every commit is built and tested automatically.</td></tr>
+    <tr class="rv"><td><b class="hl">Continuous Delivery</b></td><td>Every passing build is <i>ready</i> to release. A human approves the button.</td></tr>
+    <tr class="rv"><td><b class="hl">Continuous Deployment</b></td><td>Every passing build goes to production automatically.</td></tr>
+  </table>
+</section>
+
+<section class="slide" data-sec="Module 3 · DevOps &amp; 8 phases">
+  <h2>This file <i>is</i> a DevOps pipeline 🔧</h2>
+<pre class="code">name: ci
+on: [push]
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install -r requirements.txt
+      - run: pytest</pre>
+  <p class="rv hl"><b>You can write and run this tonight, for free, on GitHub.</b></p>
+</section>
+
+<section class="slide" data-sec="Module 3 · DevOps &amp; 8 phases">
+  <h2>🎯 Career link: the 8 phases are 8 doorways</h2>
+  <table class="t">
+    <tr><th>Phases</th><th>Roles that live here</th></tr>
+    <tr class="rv"><td>Plan · Code</td><td>Product / Scrum roles, Software Developer</td></tr>
+    <tr class="rv"><td>Build · Test</td><td>Build Engineer, QA Automation (SDET)</td></tr>
+    <tr class="rv"><td>Release · Deploy</td><td>DevOps Engineer, Release Engineer</td></tr>
+    <tr class="rv"><td>Operate · Monitor</td><td>SRE, Cloud Engineer, Platform Engineer</td></tr>
+  </table>
+  <div class="career rv"><b>Insight</b><p>Developers who understand the right half of the loop are the ones companies trust with bigger systems.</p></div>
+</section>
+
+<section class="slide center" data-sec="Module 3 · DevOps &amp; 8 phases" data-quiz="3">
+  <div class="quiz"><div class="n">Module 3 · Quiz 1 of 1</div><h1 style="margin:.6rem 0">The 8 DevOps phases</h1><p>5 questions · 25 seconds each · phone out 📱</p><p class="mut">Your phone shows the same title. Wait for Q1.</p></div>
+</section>
+
+<!-- =============================== 4 AI =============================== -->
+<section class="slide" data-sec="Module 4 · AI in DevOps">
+  <h2>AI is entering <u>every</u> phase 🤖</h2>
+  <table class="t" style="font-size:1.15rem">
+    <tr><th>Phase</th><th>What AI is starting to do</th></tr>
+    <tr class="rv"><td>Plan</td><td>Summarise requirements, draft user stories</td></tr>
+    <tr class="rv"><td>Code</td><td>Suggest, write and refactor code (assistants and agents)</td></tr>
+    <tr class="rv"><td>Build · Test</td><td>Explain failing builds, generate test cases</td></tr>
+    <tr class="rv"><td>Release · Deploy</td><td>Draft release notes, generate infrastructure code</td></tr>
+    <tr class="rv"><td>Operate · Monitor</td><td>Spot anomalies, group alerts, summarise incidents</td></tr>
+  </table>
+</section>
+
+<section class="slide" data-sec="Module 4 · AI in DevOps">
+  <h2>From DevOps to AIOps</h2>
+  <div class="flow">
+    <div class="step bad">500 alerts at 3 AM</div><span class="arrow">→</span>
+    <div class="step rv">AI groups them into <b>1 incident</b></div><span class="arrow rv">→</span>
+    <div class="step rv">Suggests the <b>probable cause</b></div><span class="arrow rv">→</span>
+    <div class="step rv ok">Runs a runbook or proposes a fix</div>
+  </div>
+  <p class="rv hl" style="margin-top:1.4rem"><b>Less noise. Faster diagnosis. Humans still decide.</b></p>
+</section>
+
+<section class="slide" data-sec="Module 4 · AI in DevOps">
+  <h2>The self-healing pipeline 🩹</h2>
+  <div class="flow">
+    <div class="step bad">Pipeline fails ❌</div><span class="arrow">→</span>
+    <div class="step rv">Agent reads the logs</div><span class="arrow rv">→</span>
+    <div class="step rv">Finds the cause</div><span class="arrow rv">→</span>
+    <div class="step rv">Opens a fix (pull request)</div><span class="arrow rv">→</span>
+    <div class="step rv ok">Tests pass → human approves ✅</div>
+  </div>
+  <p class="rv mut" style="margin-top:1.4rem">Agents reach your tools (Git, CI, cloud) through standard connectors such as MCP. Power is only useful with <b>guardrails</b>: least privilege, approvals, audit trail.</p>
+</section>
+
+<section class="slide" data-sec="Module 4 · AI in DevOps">
+  <h2>New "Ops" born from AI</h2>
+  <div class="cards c3">
+    <div class="card rv"><h3>MLOps</h3><p>Train, deploy, monitor and retrain ML models</p></div>
+    <div class="card rv"><h3>LLMOps</h3><p>Prompts, evaluations, guardrails, cost per request</p></div>
+    <div class="card rv"><h3>AgentOps</h3><p>Observe and govern AI agents running in production</p></div>
+  </div>
+  <p class="rv hl" style="margin-top:1.2rem">Same DevOps ideas (automate, monitor, improve) applied to a new kind of software.</p>
+</section>
+
+<section class="slide" data-sec="Module 4 · AI in DevOps">
+  <h2>What AI does <u>not</u> change ⚠</h2>
+  <ul>
+    <li class="rv">AI can <b class="bad">hallucinate</b> configs, commands and package names.</li>
+    <li class="rv">AI can leak <b class="bad">secrets</b> or grant over-broad permissions.</li>
+    <li class="rv">You still need to <b>read, test and understand</b> what it produced.</li>
+    <li class="rv">When production breaks, <b class="hl">a human is accountable</b>.</li>
+  </ul>
+  <p class="rv warn" style="margin-top:1rem"><b>Rule of thumb: AI proposes. You review, test, then apply.</b></p>
+</section>
+
+<section class="slide" data-sec="Module 4 · AI in DevOps">
+  <h2>🎯 Career link: where does this leave you?</h2>
+  <div class="two">
+    <div class="card rv"><h3 class="warn">Gets cheaper</h3><ul><li>Typing boilerplate code</li><li>Memorising syntax</li><li>First drafts of scripts</li></ul></div>
+    <div class="card rv"><h3 class="ok">Gets more valuable</h3><ul><li>Judgement and review</li><li>Testing and security thinking</li><li>Running systems reliably</li><li>Explaining trade-offs</li></ul></div>
+  </div>
+  <div class="career rv"><b>Takeaway</b><p>AI raises the floor for writing code and raises the premium for engineers who can <b>ship and run</b> it.</p></div>
+</section>
+
+<section class="slide center" data-sec="Module 4 · AI in DevOps" data-quiz="4">
+  <div class="quiz"><div class="n">Module 4 · Quiz 1 of 1</div><h1 style="margin:.6rem 0">AI in DevOps</h1><p>5 questions · 25 seconds each · phone out 📱</p><p class="mut">Your phone shows the same title. Wait for Q1.</p></div>
+</section>
+
+<!-- =============================== 5 RAPID FIRE =============================== -->
+<section class="slide center" data-sec="Module 5 · Rapid-fire" data-quiz="5">
+  <div class="quiz"><div class="n">Module 5 · Quiz 1 of 1 · Rapid-fire 🔥</div><h1 style="margin:.6rem 0">Mixed round: top 3 win</h1><p>Everything from today. 5 questions · same 25 seconds.</p><p class="mut">After this: the leaderboard, then your roadmap.</p></div>
+</section>
+
+<!-- =============================== 6 PATH =============================== -->
+<section class="slide" data-sec="Module 6 · Your path">
+  <h2>Your path: 5 stages from classroom to cloud 🚀</h2>
+  <div class="stages">
+    <div class="stage rv"><div class="num">1</div><div class="nm">Linux + Git</div><div class="wk">2–3 weeks</div></div>
+    <div class="stage rv"><div class="num">2</div><div class="nm">CI/CD</div><div class="wk">~2 weeks</div></div>
+    <div class="stage rv"><div class="num">3</div><div class="nm">Containers</div><div class="wk">~3 weeks</div></div>
+    <div class="stage rv"><div class="num">4</div><div class="nm">Cloud + IaC</div><div class="wk">~4 weeks</div></div>
+    <div class="stage rv"><div class="num">5</div><div class="nm">Observability + AI</div><div class="wk">ongoing</div></div>
+  </div>
+  <p class="rv mut" style="margin-top:1.4rem">Timings are a guide for someone studying alongside college. Each stage ends with a <b>mini-project</b>: proof of work you can show.</p>
+</section>
+
+<section class="slide" data-sec="Module 6 · Your path">
+  <h2>Stages 1 and 2</h2>
+  <table class="t" style="font-size:1.15rem">
+    <tr><th></th><th>1 · Linux + Git</th><th>2 · CI/CD</th></tr>
+    <tr class="rv"><td><b>Learn</b></td><td>Terminal, permissions, processes, bash · branches, pull requests</td><td>GitHub Actions: build and test on every push</td></tr>
+    <tr class="rv"><td><b>Free resources</b></td><td>linuxjourney.com · git-scm.com/book (Pro Git)</td><td>docs.github.com/actions</td></tr>
+    <tr class="rv"><td><b>Mini-project</b></td><td>Bash script that backs up a folder; push to GitHub with a good README</td><td>Add a workflow to your own app: lint + test + status badge</td></tr>
+  </table>
+</section>
+
+<section class="slide" data-sec="Module 6 · Your path">
+  <h2>Stages 3, 4 and 5</h2>
+  <table class="t" style="font-size:1.05rem">
+    <tr><th></th><th>3 · Containers</th><th>4 · Cloud + IaC</th><th>5 · Observe + AI</th></tr>
+    <tr class="rv"><td><b>Learn</b></td><td>Docker, then Kubernetes basics</td><td>One cloud (AWS or Azure) + Terraform</td><td>Metrics, logs, alerts · AI assistants in your workflow</td></tr>
+    <tr class="rv"><td><b>Free resources</b></td><td>docs.docker.com/get-started · kubernetes.io/docs/tutorials</td><td>skillbuilder.aws · learn.microsoft.com · developer.hashicorp.com/terraform/tutorials</td><td>grafana.com/tutorials · opentelemetry.io/docs</td></tr>
+    <tr class="rv"><td><b>Mini-project</b></td><td>Dockerise your app; run app + database with Compose</td><td>Terraform a small deployment and set a <b>budget alert</b></td><td>Dashboard + alert for your deployed app; let an AI assistant draft a runbook, then review it</td></tr>
+  </table>
+  <p class="rv mut" style="font-size:1.05rem">Cloud free tiers change. Check current terms and always set a budget alert.</p>
+</section>
+
+<section class="slide" data-sec="Module 6 · Your path">
+  <h2>Proof of work beats theory</h2>
+  <div class="cards c2">
+    <div class="card rv"><h3>📁 A GitHub repo</h3><p>Clean README, pipeline badge, architecture diagram.</p></div>
+    <div class="card rv"><h3>🌐 A live URL</h3><p>Your app running in the cloud, not just on your laptop.</p></div>
+    <div class="card rv"><h3>📝 A short write-up</h3><p>What broke, how you fixed it. Recruiters love this.</p></div>
+    <div class="card rv"><h3>🎓 Certificates (when ready)</h3><p>AWS Cloud Practitioner or Azure AZ-900 are common first steps.</p></div>
+  </div>
+  <p class="rv hl" style="margin-top:1rem"><b>Roles this unlocks:</b> DevOps · Cloud · SRE · Platform · DevSecOps · MLOps/LLMOps · FinOps</p>
+</section>
+
+<section class="slide" data-sec="Module 6 · Your path">
+  <h2>Your next 30 days</h2>
+  <div class="cards c4">
+    <div class="card rv"><h3>Week 1</h3><p>Linux commands + Git. Create your GitHub profile.</p></div>
+    <div class="card rv"><h3>Week 2</h3><p>Add a GitHub Actions workflow to one project.</p></div>
+    <div class="card rv"><h3>Week 3</h3><p>Dockerise it. Run it anywhere.</p></div>
+    <div class="card rv"><h3>Week 4</h3><p>Deploy it to a cloud free tier. Add a budget alert.</p></div>
+  </div>
+  <p class="rv hl" style="margin-top:1.2rem"><b>Tonight's homework (30 min):</b> create a repo, push any small app, add the 10-line pipeline from earlier.</p>
+</section>
+
+<section class="slide" data-sec="Module 6 · Your path" data-poll="3">
+  <div class="quiz">
+    <div class="n">Module 6 · Poll 1 of 1 · vote on your phone</div>
+    <h2 style="margin:.6rem 0">Which stage will you start this week?</h2>
+    <div class="opts"><div><b>A</b>Linux + Git</div><div><b>B</b>CI/CD pipeline</div><div><b>C</b>Docker + containers</div><div><b>D</b>Cloud + Terraform</div></div>
+  </div>
+</section>
+
+<section class="slide center" data-sec="Module 6 · Your path">
+  <h1>From classroom to cloud 🚀</h1>
+  <h2 class="hl">The gap is smaller than it looks. It starts with one repo.</h2>
+  <p class="by">Anil Kumar Sandrapuri · DevPro Academy · github.com/askanilkumar</p>
+  <p class="mut">Thank you, VIT MCA!</p>
+</section>
+
+</div>
+
+<div id="hud"><div id="prog"></div></div>
+<div id="pg"></div>
+<div class="nav"><button id="bPrev">◀</button><button id="bMenu">☰ Menu (M)</button><button id="bFull">⛶ Full (F)</button><button id="bNext">▶</button></div>
+<div id="menu"></div>
+
+<script src="config.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+(function () {
+  'use strict';
+  var CFG = window.APP_CONFIG || { siteBase: '' };
+  var joinUrl = (CFG.siteBase || '') + 'q.html';
+
+  // ---------- data for generated slides
+  var OPS = [
+    ['IT Ops', 'Keeps company IT running: laptops, servers, apps, helpdesk'],
+    ['SysOps / CloudOps', 'Runs servers and cloud accounts day to day'],
+    ['NetOps', 'Networks, DNS, load balancers, connectivity'],
+    ['SecOps', 'Detects and responds to security threats'],
+    ['DevOps', 'Dev + Ops together: build, ship, run'],
+    ['DevSecOps', 'Security built into every phase, not bolted on'],
+    ['DataOps', 'Reliable, tested, automated data pipelines'],
+    ['MLOps', 'Train, deploy, monitor and retrain ML models'],
+    ['AIOps', 'AI to spot anomalies and cut alert noise'],
+    ['FinOps', 'Cloud cost visibility and accountability'],
+    ['LLMOps', 'Run LLM apps: prompts, evals, guardrails, cost'],
+    ['AgentOps', 'Observe and govern AI agents in production']
+  ];
+  var PHASES = [
+    { n: 'Plan', e: '🗂', side: 'dev', what: ['Gather requirements and write user stories', 'Prioritise the backlog, plan sprints', 'Agree what "done" means'], tools: ['Jira', 'Azure Boards', 'GitHub Projects', 'Trello'], cc: '"Add UPI payment. Done = pays in under 10 seconds."', out: 'A prioritised backlog' },
+    { n: 'Code', e: '⌨', side: 'dev', what: ['Write code on a feature branch', 'Open a pull request, get a code review', 'Use an AI assistant carefully'], tools: ['Git', 'GitHub / GitLab', 'VS Code', 'Copilot / Claude Code'], cc: 'Priya builds the UPI feature on a branch; Arjun reviews her PR.', out: 'Reviewed, merged code' },
+    { n: 'Build', e: '🔨', side: 'dev', what: ['Compile and resolve dependencies', 'Package the app (artifact or container image)', 'Version every build'], tools: ['npm / Maven / pip', 'Docker', 'GitHub Actions', 'Jenkins'], cc: 'Every commit produces a versioned CampusCart container image.', out: 'A deployable artifact' },
+    { n: 'Test', e: '🧪', side: 'dev', what: ['Unit and integration tests', 'Security and quality scans', 'Quality gates: fail fast, fail early'], tools: ['pytest / JUnit', 'Playwright', 'SonarQube', 'k6 / JMeter'], cc: 'A test proves checkout still works when payment is slow.', out: 'A trusted build' },
+    { n: 'Release', e: '📦', side: 'ops', what: ['Approve and version the release', 'Write release notes', 'Use feature flags to control exposure'], tools: ['GitHub Releases', 'Container registry', 'Semantic versioning'], cc: 'v1.4.0 is tagged; UPI is hidden behind a flag.', out: 'An approved release' },
+    { n: 'Deploy', e: '🚀', side: 'ops', what: ['Push to staging, then production', 'Strategies: rolling, blue/green, canary', 'Infrastructure as Code; instant rollback'], tools: ['Kubernetes', 'Terraform', 'Argo CD', 'AWS / Azure / GCP'], cc: 'Canary: 5% of users get v1.4.0 first. Errors? Auto-rollback.', out: 'Live in production' },
+    { n: 'Operate', e: '🛠', side: 'ops', what: ['Run, scale and patch the system', 'Handle incidents and on-call', 'Backups, access control, cost control'], tools: ['Kubernetes', 'Cloud consoles', 'PagerDuty', 'Runbooks'], cc: 'Autoscaling adds servers for the 9 PM rush.', out: 'A healthy running system' },
+    { n: 'Monitor', e: '📊', side: 'ops', what: ['Metrics, logs and traces', 'Alerts and SLOs', 'Feed learnings back into Plan'], tools: ['Prometheus', 'Grafana', 'CloudWatch / Azure Monitor', 'OpenTelemetry'], cc: 'Dashboard shows CPU at 95% at 9 PM → next sprint plans a fix.', out: 'Insight for the next Plan' }
+  ];
+
+  // ---------- build generated slides
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  document.querySelectorAll('[data-gen="ops"]').forEach(function (el) {
+    el.innerHTML = '<h2>The "Ops" family</h2><div class="cards c4">' + OPS.map(function (o) {
+      return '<div class="card rv"><h3>' + o[0] + '</h3><p>' + o[1] + '</p></div>';
+    }).join('') + '</div>';
+  });
+  document.querySelectorAll('[data-gen="phase"]').forEach(function (el) {
+    var i = parseInt(el.getAttribute('data-i'), 10), p = PHASES[i];
+    el.innerHTML = '<div class="phase-head"><div class="badge">' + p.e + '</div><div><div class="kicker" style="margin:0">Phase ' + (i + 1) + ' of 8</div><h1 style="margin:0">' + p.n + '</h1></div>' +
+      '<span class="side-tag ' + p.side + '">' + (p.side === 'dev' ? 'BUILD SIDE' : 'RUN SIDE') + '</span></div>' +
+      '<div class="two"><div><h3>What happens</h3><ul>' + p.what.map(function (w) { return '<li class="rv">' + esc(w) + '</li>'; }).join('') + '</ul>' +
+      '<h3 style="margin-top:1rem">Typical tools</h3><div>' + p.tools.map(function (t) { return '<span class="chip">' + esc(t) + '</span>'; }).join('') + '</div></div>' +
+      '<div><div class="card rv"><h3>🛒 CampusCart moment</h3><p style="font-size:1.3rem;color:var(--ink)">' + esc(p.cc) + '</p></div>' +
+      '<div class="career rv"><b>Output</b><p>' + esc(p.out) + '</p></div></div></div>';
+  });
+
+  // ---------- infinity loop diagram
+  (function () {
+    var box = document.getElementById('loopbox'); if (!box) return;
+    var W = 900, H = 360, cx = W / 2, cy = H / 2, a = 330, NS = 'http://www.w3.org/2000/svg';
+    function pt(t) { var d = 1 + Math.sin(t) * Math.sin(t); return [cx + a * Math.cos(t) / d, cy - 1.15 * a * Math.sin(t) * Math.cos(t) / d]; }
+    var path = '';
+    for (var k = 0; k <= 200; k++) { var p = pt(k / 200 * 2 * Math.PI); path += (k ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1); }
+    var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:min(86vw,150vh);height:auto" xmlns="' + NS + '"><path d="' + path + 'Z" fill="none" stroke="#2b4d8a" stroke-width="4"/>';
+    var ts = [0.625, 0.875, 1.125, 1.375, 1.625, 1.875, 2.125, 2.375];
+    PHASES.forEach(function (ph, i) {
+      var q = pt(ts[i] * Math.PI), col = ph.side === 'dev' ? '#3b82f6' : '#10b981';
+      svg += '<circle cx="' + q[0].toFixed(1) + '" cy="' + q[1].toFixed(1) + '" r="27" fill="' + col + '" stroke="#0a1020" stroke-width="3"/>' +
+        '<text x="' + q[0].toFixed(1) + '" y="' + (q[1] + 8).toFixed(1) + '" text-anchor="middle" font-size="24">' + ph.e + '</text>' +
+        '<text x="' + q[0].toFixed(1) + '" y="' + (q[1] + (q[1] < cy ? -38 : 52)).toFixed(1) + '" text-anchor="middle" font-size="22" font-weight="700" fill="#f1f5ff">' + (i + 1) + '. ' + ph.n + '</text>';
+    });
+    svg += '<text x="' + cx + '" y="' + (cy + 8) + '" text-anchor="middle" font-size="26" font-weight="800" fill="#22d3ee">DevOps</text></svg>';
+    box.innerHTML = svg;
+  })();
+
+  // ---------- QR
+  document.getElementById('joinUrl').textContent = joinUrl.replace(/^https?:\/\//, '');
+  try { new QRCode(document.getElementById('qrbox'), { text: joinUrl, width: 300, height: 300 }); }
+  catch (e) { document.getElementById('qrbox').textContent = '(QR library unavailable: use the link)'; }
+
+  // ---------- navigation
+  var slides = [].slice.call(document.querySelectorAll('.slide')), cur = 0;
+  var secs = [];
+  slides.forEach(function (s, i) {
+    var sec = s.getAttribute('data-sec') || '';
+    if (!secs.length || secs[secs.length - 1].name !== sec) secs.push({ name: sec, i: i });
+    var tg = document.createElement('div'); tg.className = 'tag'; tg.textContent = sec; s.appendChild(tg);
+    var ft = document.createElement('div'); ft.className = 'foot'; ft.innerHTML = '<span>From Classroom to Cloud · DevPro Academy</span><span></span>'; s.appendChild(ft);
+  });
+  function reveals(s) { return [].slice.call(s.querySelectorAll('.rv')); }
+  function show(n, full) {
+    cur = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach(function (s, i) { s.classList.toggle('on', i === cur); });
+    reveals(slides[cur]).forEach(function (r, i) { r.classList.toggle('show', full || r.classList.contains('keep')); });
+    var first = reveals(slides[cur])[0];
+    if (first && !full && first.tagName === 'H1' && first.classList.contains('show')) { /* already shown */ }
+    document.getElementById('prog').style.width = ((cur + 1) / slides.length * 100) + '%';
+    document.getElementById('pg').textContent = (cur + 1) + ' / ' + slides.length;
+    try { history.replaceState(null, '', '#' + (cur + 1)); } catch (e) {}
+  }
+  function next() {
+    var hid = reveals(slides[cur]).filter(function (r) { return !r.classList.contains('show'); });
+    if (hid.length) { hid[0].classList.add('show'); return; }
+    if (cur < slides.length - 1) show(cur + 1, false);
+  }
+  function prev() { if (cur > 0) show(cur - 1, true); }
+  function menu() {
+    var m = document.getElementById('menu');
+    if (m.classList.contains('on')) { m.classList.remove('on'); return; }
+    var h = '<h2>Jump to…</h2>';
+    secs.forEach(function (s) { h += '<button data-i="' + s.i + '">' + esc(s.name) + ' <span class="mut">(slide ' + (s.i + 1) + ')</span></button>'; });
+    slides.forEach(function (s, i) {
+      if (s.hasAttribute('data-quiz') || s.hasAttribute('data-poll')) {
+        var lbl = s.hasAttribute('data-quiz') ? '📱 Module ' + s.getAttribute('data-quiz') + ' · Quiz 1 of 1' : '📱 Poll ' + s.getAttribute('data-poll');
+        h += '<button data-i="' + i + '">' + lbl + ' <span class="mut">(slide ' + (i + 1) + ')</span></button>';
+      }
+    });
+    m.innerHTML = h; m.classList.add('on');
+    [].forEach.call(m.querySelectorAll('button'), function (b) { b.onclick = function () { m.classList.remove('on'); show(parseInt(b.getAttribute('data-i'), 10), false); }; });
+  }
+  function fullscreen() { var d = document.documentElement; if (!document.fullscreenElement) (d.requestFullscreen || function () {}).call(d); else document.exitFullscreen(); }
+
+  document.addEventListener('keydown', function (e) {
+    var k = e.key;
+    if (k === 'ArrowRight' || k === 'PageDown' || k === ' ' || k === 'Enter') { e.preventDefault(); next(); }
+    else if (k === 'ArrowLeft' || k === 'PageUp' || k === 'Backspace') { e.preventDefault(); prev(); }
+    else if (k === 'Home') show(0, false);
+    else if (k === 'End') show(slides.length - 1, true);
+    else if (k === 'm' || k === 'M') menu();
+    else if (k === 'f' || k === 'F') fullscreen();
+    else if (k === 'Escape') document.getElementById('menu').classList.remove('on');
+  });
+  document.getElementById('deck').addEventListener('click', function (e) { if (e.clientX > window.innerWidth * 0.3) next(); else prev(); });
+  document.getElementById('bNext').onclick = next; document.getElementById('bPrev').onclick = prev;
+  document.getElementById('bMenu').onclick = menu; document.getElementById('bFull').onclick = fullscreen;
+  var tx = 0;
+  document.addEventListener('touchstart', function (e) { tx = e.touches[0].clientX; }, { passive: true });
+  document.addEventListener('touchend', function (e) { var dx = e.changedTouches[0].clientX - tx; if (Math.abs(dx) > 50) { if (dx < 0) next(); else prev(); } }, { passive: true });
+
+  var start = parseInt((location.hash || '').replace('#', ''), 10);
+  show(isNaN(start) ? 0 : start - 1, false);
+  window.__deck = { show: show, next: next, slides: slides };
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>Classroom to Cloud · Live Quiz</title>
+<style>
+:root{--bg:#0b1220;--card:#131f3a;--ink:#eef3ff;--mut:#9db0d4;--acc:#22d3ee;--ok:#16a34a;--bad:#dc2626;--warn:#f59e0b}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+body{min-height:100vh;display:flex;flex-direction:column}
+header{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 14px;background:#0f1a32;border-bottom:1px solid #22345c;font-size:14px}
+header b{color:var(--acc)}
+#me{color:var(--mut);white-space:nowrap}
+#banner{display:none;background:#78350f;color:#fde68a;padding:9px 14px;font-size:14px;line-height:1.35}
+main{flex:1;padding:16px 14px 28px;max-width:560px;width:100%;margin:0 auto}
+h1{font-size:26px;margin:6px 0 4px}
+h2{font-size:20px;line-height:1.35;margin:8px 0 14px}
+p{line-height:1.45}
+.mut{color:var(--mut)}
+.meta{display:flex;justify-content:space-between;align-items:center;color:var(--acc);font-weight:700;font-size:14px;letter-spacing:.03em;text-transform:uppercase}
+.tm{font-size:22px;color:var(--warn)}
+.tm.low{color:#f87171}
+input[type=text]{width:100%;padding:15px;font-size:18px;border-radius:12px;border:2px solid #2b3f6e;background:#0f1a32;color:var(--ink);margin:12px 0}
+button{font:inherit;cursor:pointer;border:0;border-radius:12px}
+.go{width:100%;padding:15px;font-size:18px;font-weight:700;background:var(--acc);color:#06222b}
+.opt{display:block;width:100%;text-align:left;padding:16px 14px;margin:10px 0;font-size:18px;line-height:1.3;background:var(--card);color:var(--ink);border:2px solid #2b3f6e}
+.opt b{display:inline-block;width:28px;color:var(--acc)}
+.opt:active{transform:scale(.985)}
+.opt.sel{border-color:var(--acc);background:#10335a}
+.opt.ok{border-color:var(--ok);background:#0f3b24}
+.opt.bad{border-color:var(--bad);background:#451a1a}
+.opt:disabled{opacity:.92;cursor:default}
+.msg{padding:13px 14px;border-radius:12px;margin:12px 0;font-size:16px;line-height:1.4}
+.msg.wait{background:#16233f}
+.msg.good{background:#0f3b24;border:1px solid var(--ok)}
+.msg.badm{background:#451a1a;border:1px solid var(--bad)}
+.msg.info{background:#0e3144;border:1px solid #155e75}
+table{width:100%;border-collapse:collapse;font-size:17px;margin:8px 0}
+td{padding:9px 6px;border-bottom:1px solid #22345c}
+td.r{text-align:right;font-weight:700;color:var(--acc)}
+.you td{color:#fde68a}
+.link{color:var(--acc)}
+footer{display:flex;justify-content:space-between;align-items:center;padding:8px 14px;font-size:12px;color:var(--mut);border-top:1px solid #22345c}
+#dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#64748b;margin-right:6px}
+#dot.on{background:#22c55e}#dot.off{background:#f59e0b}
+.small{font-size:13px;color:var(--mut)}
+a{color:var(--acc)}
+</style>
+</head>
+<body>
+<header><span><b>Classroom → Cloud</b> · Live Quiz</span><span id="me"></span></header>
+<div id="banner"></div>
+<main id="app"></main>
+<footer><span><i id="dot"></i><span id="dtx">connecting…</span></span><a href="#" id="rename">change name</a></footer>
+
+<script src="config.js"></script>
+<script src="questions.js"></script>
+<script src="backend.js"></script>
+<script>
+(function () {
+  'use strict';
+  var CFG = window.APP_CONFIG, ITEMS = window.QUIZ.items, TOPICS = window.QUIZ.topics;
+  var TIME = (CFG.questionSeconds || 25) * 1000;
+  var app = document.getElementById('app'), banner = document.getElementById('banner');
+
+  function ld(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } }
+  function sv(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function rid() { return Math.random().toString(36).slice(2, 8); }
+
+  var me = ld('c2c_me');
+  var st = ld('c2c_st') || { run: '', ans: {}, total: 0, reg: '' };
+  var live = null, mode = 'connecting';      // connecting | live | offline
+  var qStart = {}, sent = {};
+  var lIdx = 0, lAns = {}, lTotal = 0;       // offline (self-paced) state
+
+  function label(i) { return QUIZ.info(i).label; }
+  function setStatus(txt, cls) {
+    var d = document.getElementById('dot'); d.className = cls || '';
+    document.getElementById('dtx').textContent = txt;
+  }
+  function setBanner(txt) { banner.style.display = txt ? 'block' : 'none'; banner.textContent = txt || ''; }
+  function score() { return mode === 'offline' ? lTotal : st.total; }
+  function head() { document.getElementById('me').textContent = me ? ('👤 ' + me.name + ' · ' + score() + ' pts') : ''; }
+
+  // ---------------------------------------------------------------- connection
+  function goOffline(why) {
+    if (mode === 'offline') return;
+    mode = 'offline';
+    setStatus('offline mode', 'off');
+    setBanner('⚠ Live sync unavailable (' + why + '). Self-paced mode: follow the main screen and tap Next. Your answers will not show on the leaderboard.');
+    view();
+  }
+  function goLive() {
+    if (mode === 'live') return;
+    mode = 'live'; setStatus('live', 'on'); setBanner('');
+  }
+  function connect() {
+    var fb = CFG.firebase || {};
+    if (!fb.projectId || /PASTE/.test(fb.projectId)) { goOffline('not configured'); return; }
+    setTimeout(function () { if (mode === 'connecting') goOffline('no response'); }, 10000);
+    Backend.init(fb).then(function () {
+      Backend.onLive(function (d) { goLive(); live = d; onLiveChange(); }, function () { goOffline('connection error'); });
+    }).catch(function () { goOffline('could not load'); });
+  }
+
+  function onLiveChange() {
+    if (live && live.run && st.run !== live.run) { st = { run: live.run, ans: {}, total: 0, reg: '' }; sv('c2c_st', st); sent = {}; }
+    ensurePlayer();
+    if (live && live.phase === 'question') {
+      var k = live.run + ':' + live.qIndex;
+      if (!qStart[k]) qStart[k] = Date.now();
+      resend();
+    }
+    view();
+  }
+  function ensurePlayer() {
+    if (!me || !live || !live.run || st.reg === live.run || mode !== 'live') return;
+    var run = live.run; st.reg = run; sv('c2c_st', st);
+    Backend.putPlayer(run, me.uid, me.name).catch(function () { st.reg = ''; });
+  }
+  function resend() {
+    var q = live.qIndex, a = st.ans[q], k = live.run + ':' + q;
+    if (!me || !a || sent[k]) return;
+    sent[k] = true;
+    Backend.putAnswer(live.run, q, me.uid, me.name, a.c, a.ms, a.pts).catch(function () { sent[k] = false; });
+  }
+
+  // ---------------------------------------------------------------- actions
+  function join() {
+    var v = (document.getElementById('nm').value || '').replace(/[<>]/g, '').trim().slice(0, 24);
+    if (!v) { document.getElementById('nm').focus(); return; }
+    me = { uid: (me && me.uid) || ld('c2c_uid') || rid(), name: v }; sv('c2c_me', me); sv('c2c_uid', me.uid);
+    ensurePlayer(); view();
+  }
+  function pick(i) {
+    if (mode === 'offline') { pickLocal(i); return; }
+    if (!live || live.phase !== 'question') return;
+    var q = live.qIndex, it = ITEMS[q];
+    if (st.ans[q]) return;
+    var k = live.run + ':' + q, ms = Date.now() - (qStart[k] || Date.now());
+    if (ms > TIME + 1500) return;
+    var ok = it.type === 'quiz' && i === it.a;
+    var pts = ok ? 100 + Math.round(50 * Math.max(0, 1 - ms / TIME)) : 0;
+    st.ans[q] = { c: i, ms: ms, pts: pts }; st.total += pts; sv('c2c_st', st); sent[k] = true;
+    Backend.putAnswer(live.run, q, me.uid, me.name, i, ms, pts).catch(function () { sent[k] = false; });
+    view();
+  }
+  function pickLocal(i) {
+    if (lAns[lIdx] !== undefined) return;
+    var it = ITEMS[lIdx]; lAns[lIdx] = i;
+    if (it.type === 'quiz' && i === it.a) lTotal += 100;
+    view();
+  }
+
+  // ---------------------------------------------------------------- views
+  function renderJoin() {
+    app.innerHTML = '<h1>Join the quiz 🎯</h1><p class="mut">Type your first name (and last initial). That is all: no login.</p>' +
+      '<input id="nm" type="text" maxlength="24" placeholder="e.g. Priya S" autocomplete="off" autocapitalize="words">' +
+      '<button class="go" id="jb">Join</button>' +
+      '<div class="msg info">📌 Keep <b>Teams audio on</b> and watch the main screen. Use this page only for the quizzes.</div>';
+    document.getElementById('jb').onclick = join;
+    document.getElementById('nm').onkeydown = function (e) { if (e.key === 'Enter') join(); };
+  }
+  function optsHtml(it, a, rev, expired, onclickName) {
+    var h = '';
+    it.o.forEach(function (o, i) {
+      var cls = 'opt';
+      if (rev && it.type === 'quiz') { if (i === it.a) cls += ' ok'; else if (a && a.c === i) cls += ' bad'; }
+      else if (a && a.c === i) cls += ' sel';
+      h += '<button class="' + cls + '" data-i="' + i + '"' + ((a || rev || expired) ? ' disabled' : '') + '><b>' + 'ABCD'[i] + '</b>' + esc(o) + '</button>';
+    });
+    return h;
+  }
+  function bindOpts() {
+    var b = app.querySelectorAll('.opt');
+    for (var i = 0; i < b.length; i++) b[i].onclick = function () { pick(parseInt(this.getAttribute('data-i'), 10)); };
+  }
+  function feedback(it, a) {
+    if (it.type === 'poll') return '<div class="msg info">Thanks! Results are on the main screen 👀</div>';
+    var h = '';
+    if (a && a.c === it.a) h = '<div class="msg good"><b>✅ Correct! +' + a.pts + '</b><br>' + esc(it.e) + '</div>';
+    else if (a) h = '<div class="msg badm"><b>❌ Not quite.</b> Answer: <b>' + 'ABCD'[it.a] + '. ' + esc(it.o[it.a]) + '</b><br>' + esc(it.e) + '</div>';
+    else h = '<div class="msg wait"><b>⏱ No answer.</b> Answer: <b>' + 'ABCD'[it.a] + '. ' + esc(it.o[it.a]) + '</b><br>' + esc(it.e) + '</div>';
+    return h;
+  }
+  function board(list, title) {
+    var h = '<h1>' + title + '</h1><table>';
+    (list || []).forEach(function (r, i) { h += '<tr' + (me && r.n === me.name ? ' class="you"' : '') + '><td>' + (i + 1) + '</td><td>' + esc(r.n) + '</td><td class="r">' + r.p + '</td></tr>'; });
+    h += '</table><div class="msg info">Your score: <b>' + st.total + '</b> pts</div>';
+    return h;
+  }
+
+  function view() {
+    head();
+    if (!me) { if (!document.getElementById('nm')) renderJoin(); return; }
+    if (mode === 'connecting') { app.innerHTML = '<h1>Connecting…</h1><p class="mut">One moment.</p>'; return; }
+    if (mode === 'offline') { renderLocal(); return; }
+    if (!live || !live.phase || live.phase === 'lobby') {
+      app.innerHTML = '<h1>You\'re in, ' + esc(me.name) + '! 🎉</h1><div class="msg wait">Waiting for the session to start…<br><span class="small">This page updates by itself. No need to refresh.</span></div>' +
+        '<p class="mut">While you wait: in the next 2 hours you will unlock the map from <b>classroom to cloud</b>.</p>';
+      return;
+    }
+    var ph = live.phase, q = live.qIndex, it = ITEMS[q];
+    if (ph === 'break') { app.innerHTML = '<h1>⏸ Short pause</h1><div class="msg wait">Look at the main screen. We will resume in a moment.</div>'; return; }
+    if (ph === 'board') { app.innerHTML = board((live.top || []).slice(0, 5), '🏆 Leaderboard · after Module ' + (it ? it.topic : '')); return; }
+    if (ph === 'end') {
+      app.innerHTML = board((live.top || []).slice(0, 5), '🎓 Final standings') +
+        '<div class="msg good">Thank you! Your roadmap and slides: <a href="' + esc(CFG.siteBase) + '">open the deck</a></div>';
+      return;
+    }
+    if (!it) return;
+    var a = st.ans[q], rev = ph === 'revealed';
+    var k = live.run + ':' + q;
+    var left = Math.max(0, Math.ceil((TIME - (Date.now() - (qStart[k] || Date.now()))) / 1000));
+    var expired = ph === 'question' && left === 0 && !a;
+    var h = '<div class="meta"><span>' + label(q) + '</span><span id="tm" class="tm">' + (ph === 'question' && !a ? left + 's' : '') + '</span></div><div class="small" style="margin-top:2px">' + esc(QUIZ.info(q).name) + '</div>';
+    h += '<h2>' + esc(it.q) + '</h2>' + optsHtml(it, a, rev, expired);
+    if (ph === 'question' && a) h += '<div class="msg wait">🔒 Answer locked. Waiting for the reveal…</div>';
+    if (expired) h += '<div class="msg wait">⏱ Time\'s up. Waiting for the reveal…</div>';
+    if (rev) h += feedback(it, a) + '<p class="small">Your score: ' + st.total + ' pts</p>';
+    app.innerHTML = h; bindOpts();
+  }
+
+  function renderLocal() {
+    var it = ITEMS[lIdx];
+    if (!it) { app.innerHTML = '<h1>🎓 Done!</h1><div class="msg good">Your self-paced score: <b>' + lTotal + '</b></div>'; return; }
+    var a = lAns[lIdx] === undefined ? null : { c: lAns[lIdx] };
+    var h = '<div class="meta"><span>' + label(lIdx) + ' · self-paced</span></div><h2>' + esc(it.q) + '</h2>' + optsHtml(it, a, !!a, false);
+    if (a) {
+      var ok = it.type === 'quiz' && a.c === it.a;
+      h += it.type === 'poll' ? '<div class="msg info">Thanks! 👀 Check the main screen.</div>' :
+        '<div class="msg ' + (ok ? 'good' : 'badm') + '"><b>' + (ok ? '✅ Correct!' : '❌ Not quite.') + '</b>' + (ok ? '' : ' Answer: <b>' + 'ABCD'[it.a] + '</b>') + '<br>' + esc(it.e) + '</div>';
+      h += '<button class="go" id="nx">Next ▶</button>';
+    }
+    app.innerHTML = h; bindOpts();
+    var nx = document.getElementById('nx'); if (nx) nx.onclick = function () { lIdx++; view(); };
+  }
+
+  // timer tick (updates only the clock, never re-renders)
+  setInterval(function () {
+    if (mode !== 'live' || !live || live.phase !== 'question') return;
+    var q = live.qIndex, a = st.ans[q], k = live.run + ':' + q;
+    var t = document.getElementById('tm'); if (!t || a) return;
+    var left = Math.max(0, Math.ceil((TIME - (Date.now() - (qStart[k] || Date.now()))) / 1000));
+    t.textContent = left + 's'; t.className = 'tm' + (left <= 5 ? ' low' : '');
+    if (left === 0) view();
+  }, 250);
+
+  window.addEventListener('offline', function () { if (mode === 'live') setStatus('reconnecting…', 'off'); });
+  window.addEventListener('online', function () { if (mode === 'live') setStatus('live', 'on'); });
+  document.getElementById('rename').onclick = function (e) {
+    e.preventDefault();
+    if (me) sv('c2c_uid', me.uid);          // keep the same id so scores stay attached
+    me = null; sv('c2c_me', null); st.reg = ''; sv('c2c_st', st);
+    renderJoin(); head();
+  };
+
+  view();
+  connect();
+})();
+</script>
+</body>
+</html>
